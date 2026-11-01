@@ -12,15 +12,13 @@ struct AppsScreen: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let columnCount = geometry.size.width >= 900 ? 5 : (geometry.size.width >= 650 ? 4 : 3)
+            let columnCount = 5
             let pageSize = columnCount * 2
-            let iconSize = min(126, max(86, geometry.size.width * 0.095))
-            let rowSpacing = max(34, geometry.size.height * 0.27)
+            let iconSize = min(geometry.size.width * 0.109, geometry.size.height * 0.25)
             let sections = layoutStore.visibleSections
             let pages = stride(from: 0, to: sections.count, by: pageSize).map { start in
                 Array(sections[start..<min(start + pageSize, sections.count)])
             }
-            let columns = Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .center), count: columnCount)
 
             Group {
                 if sections.isEmpty {
@@ -31,64 +29,48 @@ struct AppsScreen: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    VStack(spacing: 0) {
-                        TabView(selection: $selectedPage) {
-                            ForEach(pages.indices, id: \.self) { pageIndex in
-                                LazyVGrid(columns: columns, spacing: rowSpacing) {
-                                    let page = pages[pageIndex]
-                                    if page.count <= columnCount {
-                                        ForEach(0..<((columnCount - page.count) / 2), id: \.self) { _ in
-                                            Color.clear
-                                                .frame(height: 137)
-                                                .accessibilityHidden(true)
-                                        }
-                                    }
-                                    ForEach(page) { section in
-                                        Button { onSelect(section) } label: {
-                                            VStack(spacing: 6) {
-                                                AppIconTile(section: section)
-                                                    .frame(width: iconSize, height: iconSize)
-                                                Text(section.title)
-                                                    .font(.system(size: max(12, iconSize * 0.12), weight: .semibold))
-                                                    .foregroundStyle(.white)
-                                                    .lineLimit(1)
-                                                    .minimumScaleFactor(0.8)
-                                                    .padding(.horizontal, 8)
-                                                    .padding(.vertical, 3)
-                                                    .background(Color.black.opacity(0.42), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
-                                            }
-                                            .frame(maxWidth: .infinity)
-                                            .contentShape(Rectangle())
-                                        }
-                                        .buttonStyle(CarPlayPressButtonStyle(pressedScale: 0.91))
-                                    }
+                    TabView(selection: $selectedPage) {
+                        ForEach(pages.indices, id: \.self) { pageIndex in
+                            let page = pages[pageIndex]
+                            ZStack {
+                                if !page.prefix(columnCount).isEmpty {
+                                    appGridRow(Array(page.prefix(columnCount)), iconSize: iconSize)
+                                        .position(x: geometry.size.width * 0.466, y: geometry.size.height * 0.29)
                                 }
-                                .frame(maxWidth: geometry.size.width * 0.875)
-                                .padding(.horizontal, 10)
-                                .offset(x: geometry.size.width * 0.03, y: -geometry.size.height * 0.045)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .tag(pageIndex)
-                            }
-                        }
-                        .tabViewStyle(.page(indexDisplayMode: .never))
-                        .animation(
-                            reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.88),
-                            value: selectedPage
-                        )
 
+                                let secondRow = Array(page.dropFirst(columnCount))
+                                if !secondRow.isEmpty {
+                                    appGridRow(secondRow, iconSize: iconSize)
+                                        .position(x: geometry.size.width * 0.466, y: geometry.size.height * 0.68)
+                                }
+                            }
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .contentShape(Rectangle())
+                            .tag(pageIndex)
+                        }
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .animation(
+                        reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.88),
+                        value: selectedPage
+                    )
+                    .overlay(alignment: .bottom) {
                         if pages.count > 1 {
-                            HStack(spacing: 9) {
+                            HStack(spacing: max(7, geometry.size.width * 0.012)) {
                                 ForEach(pages.indices, id: \.self) { pageIndex in
                                     Capsule()
-                                        .fill(pageIndex == selectedPage ? Color.white : Color.white.opacity(0.34))
-                                        .frame(width: pageIndex == selectedPage ? 18 : 7, height: 7)
+                                        .fill(pageIndex == selectedPage ? Color.white : Color.white.opacity(0.38))
+                                        .frame(
+                                            width: pageIndex == selectedPage ? max(20, iconSize * 0.19) : max(7, iconSize * 0.07),
+                                            height: max(5, iconSize * 0.06)
+                                        )
                                         .animation(
                                             reduceMotion ? nil : .spring(response: 0.30, dampingFraction: 0.78),
                                             value: selectedPage
                                         )
                                 }
                             }
-                            .padding(.bottom, 10)
+                            .padding(.bottom, geometry.size.height * 0.055)
                             .accessibilityElement(children: .ignore)
                             .accessibilityLabel("앱 페이지 \(selectedPage + 1), 총 \(pages.count)페이지")
                         }
@@ -96,13 +78,49 @@ struct AppsScreen: View {
                     .onChange(of: sections) { _, _ in
                         selectedPage = 0
                     }
-                    .onChange(of: columnCount) { _, _ in
-                        selectedPage = 0
-                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+    }
+
+    private func appGridRow(_ sections: [AppSection], iconSize: CGFloat) -> some View {
+        let leadingEmptySlots = max(0, (5 - sections.count) / 2)
+        let trailingEmptySlots = max(0, 5 - sections.count - leadingEmptySlots)
+
+        return HStack(spacing: 0) {
+            ForEach(0..<leadingEmptySlots, id: \.self) { _ in
+                Color.clear.frame(maxWidth: .infinity)
+                    .accessibilityHidden(true)
+            }
+
+            ForEach(sections) { section in
+                Button { onSelect(section) } label: {
+                    VStack(spacing: max(5, iconSize * 0.035)) {
+                        AppIconTile(section: section)
+                            .frame(width: iconSize, height: iconSize)
+
+                        Text(section.launcherTitle)
+                            .font(.system(size: max(14, iconSize * 0.18), weight: .semibold))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                            .padding(.horizontal, max(8, iconSize * 0.085))
+                            .padding(.vertical, max(3, iconSize * 0.035))
+                            .background(Color.black.opacity(0.50), in: RoundedRectangle(cornerRadius: max(4, iconSize * 0.04), style: .continuous))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(CarPlayPressButtonStyle(pressedScale: 0.93))
+            }
+
+            ForEach(0..<trailingEmptySlots, id: \.self) { _ in
+                Color.clear.frame(maxWidth: .infinity)
+                    .accessibilityHidden(true)
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 

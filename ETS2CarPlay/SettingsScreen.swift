@@ -14,6 +14,7 @@ struct SettingsScreen: View {
     @ObservedObject var layoutStore: AppLayoutStore
     @Binding var appearance: String
     @Binding var speedUnit: String
+    @Binding var screenAspect: String
     @State private var selectedCategory: SettingsCategory?
 
     var body: some View {
@@ -101,7 +102,7 @@ struct SettingsScreen: View {
         case .wallpaper: "기본 배경을 고르거나 사진에서 추가"
         case .apps: "홈 화면에 표시할 앱과 순서"
         case .general: "운행 화면, 데이터, 소프트웨어 업데이트"
-        case .display: "화면 모드, 상태 표시, 속도 단위"
+        case .display: "CarPlay 화면 비율, 상태 표시, 속도 단위"
         case .sound: "음성 안내와 오디오 재생 설정"
         case .alerts: "연료, 속도, 차량 상태 경보"
         case .connection: "Windows PC와 ETS2 연결"
@@ -119,7 +120,7 @@ struct SettingsScreen: View {
         case .general:
             GeneralSettingsView(keepScreenAwake: $keepScreenAwake, updateChecker: updateChecker)
         case .display:
-            DisplaySettingsView(showStatusBar: $showStatusBar, appearance: $appearance, speedUnit: $speedUnit)
+            DisplaySettingsView(showStatusBar: $showStatusBar, appearance: $appearance, speedUnit: $speedUnit, screenAspect: $screenAspect)
         case .sound:
             SoundSettingsView()
         case .alerts:
@@ -403,6 +404,7 @@ private struct DisplaySettingsView: View {
     @Binding var showStatusBar: Bool
     @Binding var appearance: String
     @Binding var speedUnit: String
+    @Binding var screenAspect: String
 
     var body: some View {
         Form {
@@ -413,6 +415,10 @@ private struct DisplaySettingsView: View {
                 }
             }
             Section("화면 구성") {
+                Picker("화면 비율", selection: $screenAspect) {
+                    Text("CarPlay 와이드 · 8:3").tag("carPlay")
+                    Text("iPad 전체 화면").tag("ipad")
+                }
                 Picker("화면 모드", selection: $appearance) {
                     Text("어둡게").tag("dark")
                     Text("밝게").tag("light")

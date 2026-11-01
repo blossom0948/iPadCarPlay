@@ -37,17 +37,24 @@ enum AppSection: String, CaseIterable, Codable, Identifiable, Hashable {
         }
     }
 
+    var launcherTitle: String {
+        switch self {
+        case .dashboard: "재생 중"
+        default: title
+        }
+    }
+
     var symbol: String {
         switch self {
-        case .dashboard: "rectangle.split.2x1.fill"
+        case .dashboard: "waveform"
         case .apps: "square.grid.2x2.fill"
         case .navigation: "map.fill"
         case .music: "music.note"
         case .youtube: "play.rectangle.fill"
         case .phone: "phone.fill"
-        case .messages: "bubble.left.and.bubble.right.fill"
+        case .messages: "bubble.left.fill"
         case .voice: "mic.fill"
-        case .stats: "chart.bar.fill"
+        case .stats: "chart.line.uptrend.xyaxis"
         case .controls: "steeringwheel"
         case .settings: "gearshape.fill"
         }
@@ -55,14 +62,14 @@ enum AppSection: String, CaseIterable, Codable, Identifiable, Hashable {
 
     var color: Color {
         switch self {
-        case .dashboard: Color(red: 0.28, green: 0.70, blue: 1.00)
+        case .dashboard: Color(red: 0.98, green: 0.31, blue: 0.41)
         case .apps: Color(red: 0.53, green: 0.58, blue: 1.00)
         case .navigation: Color(red: 0.28, green: 0.79, blue: 0.65)
         case .music: Color(red: 1.00, green: 0.40, blue: 0.52)
         case .youtube: Color(red: 1.00, green: 0.28, blue: 0.25)
         case .phone: Color(red: 0.26, green: 0.82, blue: 0.48)
         case .messages: Color(red: 0.28, green: 0.82, blue: 0.48)
-        case .voice: Color(red: 0.37, green: 0.67, blue: 0.98)
+        case .voice: Color(red: 0.58, green: 0.31, blue: 0.91)
         case .stats: Color(red: 1.00, green: 0.66, blue: 0.28)
         case .controls: Color(red: 0.34, green: 0.72, blue: 0.98)
         case .settings: Color(red: 0.66, green: 0.69, blue: 0.75)

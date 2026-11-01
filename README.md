@@ -3,6 +3,7 @@
 iPad에서 실행하는 ETS2 대시보드입니다. iPad Air와 iPadOS 27을 대상으로 구성했으며, 연결하면 Windows에서 실행 중인 ETS2의 SCS Telemetry SDK로부터 주행 값을 받습니다. Apple CarPlay 자체가 아니라 iPad용 CarPlay 스타일 앱입니다.
 
 처음 설치하는 순서와 USB·Wi-Fi 연결 방법은 [초보자 설치·연동 안내](INSTALLATION_GUIDE.md)를 참고하세요.
+실제 iPad CarPlay 수신기와 Apple CarPlay Simulator를 조사한 내용은 [CarPlay 참고 조사](docs/CARPLAY_REFERENCE.md)에 정리했습니다.
 
 ## 포함 기능
 
@@ -20,9 +21,10 @@ iPad에서 실행하는 ETS2 대시보드입니다. iPad Air와 iPadOS 27을 대
 - 앱 실행 시 GitHub 공개 릴리스에서 새 버전과 변경 내용을 자동 확인
 - 공식 YouTube 임베드 플레이어에 동영상 URL 또는 ID 입력
 - 앱 배경, 개인 사진, 앱 아이콘 순서와 표시, 화면 모드, 속도 단위, 알림 기준 사용자화
+- 참고 사진의 CarPlay 8:3 와이드 화면과 iPad 전체 화면 사이 비율 전환
 - CarPlay 스타일 설정 카테고리, 배경화면 선택, 사용자 사진 추가
 
-첫 화면은 참고한 CarPlay 화면처럼 다섯 열 앱 그리드, 왼쪽 최근 앱 도크, 시간·연결 표시와 사용자 배경으로 구성합니다. iPad의 화면 폭이 좁으면 열 수를 줄이고 앱 페이지를 나눕니다. 앱 페이지 넘김, 아이콘 누름, 도크 선택, 앱 화면 전환에 SwiftUI 애니메이션을 넣었으며 iPad의 동작 줄이기 설정을 따릅니다. 설정 앱은 카테고리 목록, 별도의 배경화면 화면, 기본 배경과 사진 추가를 제공합니다. 운행 화면은 실제 ETS2 데이터가 없으면 연결 상태와 데이터 대기 상태만 보여주며, 임의 속도·목적지·경로를 생성하지 않습니다. CarPlay 최신 디자인과 API 변화는 [Apple iOS 27 개발자 세션](https://developer.apple.com/videos/play/wwdc2026/212/)을 참고했습니다.
+첫 화면은 첨부한 CarPlay 화면의 8:3 와이드 비율을 기본으로 사용하고 앱은 가로 방향으로 실행됩니다. iPad에서는 검은 여백 안에 가로형 CarPlay 화면을 중앙 배치하며, 설정에서 iPad 전체 화면 모드로 바꿀 수 있습니다. 홈에는 다섯 열·두 행 앱 그리드, 왼쪽 최근 앱 도크, 시간·연결 표시, 배경화면, 페이지 전환을 둡니다. 앱 아이콘은 화면 폭과 높이에 맞춰 함께 크기가 조정됩니다. 앱 페이지 넘김, 아이콘 누름, 도크 선택, 앱 화면 전환에 SwiftUI 애니메이션을 넣었으며 iPad의 동작 줄이기 설정을 따릅니다. 설정 앱은 카테고리 목록, 별도의 배경화면 화면, 기본 배경과 사진 추가를 제공합니다. 운행 화면은 실제 ETS2 데이터가 없으면 연결 상태와 데이터 대기 상태만 보여주며, 임의 속도·목적지·경로를 생성하지 않습니다. 화면 비율은 [Apple CarPlay 디자인 가이드](https://developer.apple.com/design/human-interface-guidelines/carplay)의 일반적인 1920×720(8:3) 디스플레이를 기준으로 했습니다.
 
 설정 첫 화면은 CarPlay식 큰 터치 메뉴이며, 배경화면 선택은 별도 화면으로 열립니다. 세부 설정은 SwiftUI 기본 입력 요소를 사용합니다. 화면 재질과 전환은 보내주신 Liquid Glass 가이드와 [Apple Human Interface Guidelines의 Materials](https://developer.apple.com/design/human-interface-guidelines/materials), [Liquid Glass 적용 안내](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass)를 참고했습니다.
 
