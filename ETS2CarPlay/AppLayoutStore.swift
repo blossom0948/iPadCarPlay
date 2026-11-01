@@ -12,10 +12,20 @@ final class AppLayoutStore: ObservableObject {
 
     init() {
         let defaults = AppSection.launcherItems
+        let previousDefaultOrder: [AppSection] = [
+            .dashboard, .navigation, .music, .youtube, .phone, .messages, .voice, .stats, .controls, .settings
+        ]
         if let data = UserDefaults.standard.data(forKey: orderKey),
            let rawOrder = try? JSONDecoder().decode([String].self, from: data) {
             let saved = rawOrder.compactMap(AppSection.init(rawValue:)).filter { defaults.contains($0) }
-            orderedSections = saved + defaults.filter { !saved.contains($0) }
+            if saved == previousDefaultOrder {
+                orderedSections = defaults
+                if let migratedData = try? JSONEncoder().encode(defaults.map(\.rawValue)) {
+                    UserDefaults.standard.set(migratedData, forKey: orderKey)
+                }
+            } else {
+                orderedSections = saved + defaults.filter { !saved.contains($0) }
+            }
         } else {
             orderedSections = defaults
         }

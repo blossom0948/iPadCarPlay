@@ -28,7 +28,7 @@ enum AppSection: String, CaseIterable, Codable, Identifiable, Hashable {
         case .navigation: "지도"
         case .music: "음악"
         case .youtube: "YouTube"
-        case .phone: "가상 전화"
+        case .phone: "전화"
         case .messages: "알림 센터"
         case .voice: "음성 비서"
         case .stats: "운행 통계"
@@ -70,7 +70,7 @@ enum AppSection: String, CaseIterable, Codable, Identifiable, Hashable {
     }
 
     static let launcherItems: [AppSection] = [
-        .dashboard, .navigation, .music, .youtube, .phone, .messages, .voice, .stats, .controls, .settings
+        .phone, .music, .navigation, .messages, .dashboard, .voice, .youtube, .stats, .controls, .settings
     ]
 }
 
@@ -353,7 +353,7 @@ enum WallpaperPreset: String, CaseIterable, Identifiable, Hashable {
     var colors: [Color] {
         switch self {
         case .aurora:
-            [Color(red: 0.04, green: 0.15, blue: 0.35), Color(red: 0.12, green: 0.35, blue: 0.48), Color(red: 0.35, green: 0.18, blue: 0.55)]
+            [Color(red: 0.18, green: 0.43, blue: 0.69), Color(red: 0.56, green: 0.73, blue: 0.70), Color(red: 0.96, green: 0.62, blue: 0.34), Color(red: 0.49, green: 0.40, blue: 0.70)]
         case .ocean:
             [Color(red: 0.02, green: 0.24, blue: 0.47), Color(red: 0.05, green: 0.53, blue: 0.66), Color(red: 0.18, green: 0.76, blue: 0.76)]
         case .sunset:

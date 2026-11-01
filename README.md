@@ -20,9 +20,9 @@ iPad에서 실행하는 ETS2 대시보드입니다. iPad Air와 iPadOS 27을 대
 - 앱 실행 시 GitHub 공개 릴리스에서 새 버전과 변경 내용을 자동 확인
 - 공식 YouTube 임베드 플레이어에 동영상 URL 또는 ID 입력
 - 앱 배경, 개인 사진, 앱 아이콘 순서와 표시, 화면 모드, 속도 단위, 알림 기준 사용자화
-- iPad 설정 앱에서 익숙한 사이드바와 기본 `Form` 구성 요소를 사용하는 설정 화면
+- CarPlay 스타일 설정 카테고리, 배경화면 선택, 사용자 사진 추가
 
-첫 화면은 한 페이지에 최대 8개 앱을 보여주는 CarPlay 스타일 그리드와 왼쪽 빠른 실행 도크입니다. 앱 페이지 넘김, 아이콘 누름, 도크 선택, 앱 화면 전환에 SwiftUI 애니메이션을 넣었으며 iPad의 동작 줄이기 설정을 따릅니다. 설정 앱은 카테고리 목록, 별도의 배경화면 화면, 기본 배경과 사진 추가를 제공합니다. 운행 화면은 실제 ETS2 데이터가 없으면 연결 상태와 데이터 대기 상태만 보여주며, 임의 속도·목적지·경로를 생성하지 않습니다.
+첫 화면은 참고한 CarPlay 화면처럼 다섯 열 앱 그리드, 왼쪽 최근 앱 도크, 시간·연결 표시와 사용자 배경으로 구성합니다. iPad의 화면 폭이 좁으면 열 수를 줄이고 앱 페이지를 나눕니다. 앱 페이지 넘김, 아이콘 누름, 도크 선택, 앱 화면 전환에 SwiftUI 애니메이션을 넣었으며 iPad의 동작 줄이기 설정을 따릅니다. 설정 앱은 카테고리 목록, 별도의 배경화면 화면, 기본 배경과 사진 추가를 제공합니다. 운행 화면은 실제 ETS2 데이터가 없으면 연결 상태와 데이터 대기 상태만 보여주며, 임의 속도·목적지·경로를 생성하지 않습니다. CarPlay 최신 디자인과 API 변화는 [Apple iOS 27 개발자 세션](https://developer.apple.com/videos/play/wwdc2026/212/)을 참고했습니다.
 
 설정 첫 화면은 CarPlay식 큰 터치 메뉴이며, 배경화면 선택은 별도 화면으로 열립니다. 세부 설정은 SwiftUI 기본 입력 요소를 사용합니다. 화면 재질과 전환은 보내주신 Liquid Glass 가이드와 [Apple Human Interface Guidelines의 Materials](https://developer.apple.com/design/human-interface-guidelines/materials), [Liquid Glass 적용 안내](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass)를 참고했습니다.
 

@@ -12,13 +12,15 @@ struct AppsScreen: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let columnCount = geometry.size.width >= 760 ? 4 : 3
+            let columnCount = geometry.size.width >= 900 ? 5 : (geometry.size.width >= 650 ? 4 : 3)
             let pageSize = columnCount * 2
+            let iconSize = min(126, max(86, geometry.size.width * 0.095))
+            let rowSpacing = max(34, geometry.size.height * 0.27)
             let sections = layoutStore.visibleSections
             let pages = stride(from: 0, to: sections.count, by: pageSize).map { start in
                 Array(sections[start..<min(start + pageSize, sections.count)])
             }
-            let columns = Array(repeating: GridItem(.flexible(), spacing: 26, alignment: .center), count: columnCount)
+            let columns = Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .center), count: columnCount)
 
             Group {
                 if sections.isEmpty {
@@ -32,7 +34,7 @@ struct AppsScreen: View {
                     VStack(spacing: 0) {
                         TabView(selection: $selectedPage) {
                             ForEach(pages.indices, id: \.self) { pageIndex in
-                                LazyVGrid(columns: columns, spacing: 38) {
+                                LazyVGrid(columns: columns, spacing: rowSpacing) {
                                     let page = pages[pageIndex]
                                     if page.count <= columnCount {
                                         ForEach(0..<((columnCount - page.count) / 2), id: \.self) { _ in
@@ -43,14 +45,17 @@ struct AppsScreen: View {
                                     }
                                     ForEach(page) { section in
                                         Button { onSelect(section) } label: {
-                                            VStack(spacing: 13) {
+                                            VStack(spacing: 6) {
                                                 AppIconTile(section: section)
-                                                    .frame(width: 100, height: 100)
+                                                    .frame(width: iconSize, height: iconSize)
                                                 Text(section.title)
-                                                    .font(.system(size: 15, weight: .semibold))
-                                                    .foregroundStyle(.white.opacity(0.96))
+                                                    .font(.system(size: max(12, iconSize * 0.12), weight: .semibold))
+                                                    .foregroundStyle(.white)
                                                     .lineLimit(1)
                                                     .minimumScaleFactor(0.8)
+                                                    .padding(.horizontal, 8)
+                                                    .padding(.vertical, 3)
+                                                    .background(Color.black.opacity(0.42), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
                                             }
                                             .frame(maxWidth: .infinity)
                                             .contentShape(Rectangle())
@@ -58,8 +63,9 @@ struct AppsScreen: View {
                                         .buttonStyle(CarPlayPressButtonStyle(pressedScale: 0.91))
                                     }
                                 }
-                                .frame(maxWidth: 1_000)
-                                .padding(.horizontal, 22)
+                                .frame(maxWidth: geometry.size.width * 0.875)
+                                .padding(.horizontal, 10)
+                                .offset(x: geometry.size.width * 0.03, y: -geometry.size.height * 0.045)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .tag(pageIndex)
                             }
