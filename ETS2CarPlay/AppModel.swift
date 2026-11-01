@@ -40,6 +40,7 @@ enum AppSection: String, CaseIterable, Codable, Identifiable, Hashable {
     var launcherTitle: String {
         switch self {
         case .dashboard: "재생 중"
+        case .messages: "메시지"
         default: title
         }
     }

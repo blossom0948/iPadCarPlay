@@ -176,6 +176,7 @@ private struct SideRail: View {
             VStack(spacing: max(4, railHeight * 0.027)) {
                 ForEach(dockItems) { item in dockButton(item) }
             }
+            .offset(y: railHeight * 0.01)
 
             Spacer(minLength: 12)
             dockButton(.apps)
