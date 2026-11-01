@@ -41,7 +41,10 @@ struct ContentView: View {
                         activeScreen
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .id(model.selection)
-                            .transition(.opacity.combined(with: .scale(scale: 0.985)))
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.96)),
+                                removal: .opacity
+                            ))
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
@@ -115,7 +118,7 @@ private extension AppModel {
         if reduceMotion {
             selection = section
         } else {
-            withAnimation(.easeInOut(duration: 0.22)) {
+            withAnimation(.spring(response: 0.36, dampingFraction: 0.86)) {
                 selection = section
             }
         }
@@ -167,8 +170,9 @@ private struct TopStatusBar: View {
 private struct SideRail: View {
     let selection: AppSection
     let onSelect: (AppSection) -> Void
+    @Namespace private var dockHighlight
 
-    private let dockItems: [AppSection] = [.navigation, .music, .phone, .messages, .dashboard]
+    private let dockItems: [AppSection] = [.navigation, .music, .phone, .messages]
 
     var body: some View {
         VStack(spacing: 7) {
@@ -210,6 +214,7 @@ private struct SideRail: View {
                 if selection == item {
                     RoundedRectangle(cornerRadius: 17, style: .continuous)
                         .fill(Color.white.opacity(0.17))
+                        .matchedGeometryEffect(id: "active-dock-item", in: dockHighlight)
                         .overlay {
                             RoundedRectangle(cornerRadius: 17, style: .continuous)
                                 .stroke(Color.white.opacity(0.22), lineWidth: 1)
@@ -223,9 +228,24 @@ private struct SideRail: View {
             .frame(width: 54, height: 48)
             .contentShape(RoundedRectangle(cornerRadius: 17))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(CarPlayPressButtonStyle(pressedScale: 0.90))
         .accessibilityLabel(item.title)
         .accessibilityAddTraits(selection == item ? .isSelected : [])
+    }
+}
+
+struct CarPlayPressButtonStyle: ButtonStyle {
+    var pressedScale: CGFloat = 0.92
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? pressedScale : 1)
+            .opacity(configuration.isPressed ? 0.84 : 1)
+            .animation(
+                reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.68),
+                value: configuration.isPressed
+            )
     }
 }
 
@@ -293,13 +313,6 @@ struct AppIconTile: View {
                     endPoint: .bottomTrailing
                 )
             )
-            .overlay(alignment: .topLeading) {
-                Circle()
-                    .fill(Color.white.opacity(0.22))
-                    .frame(width: 36, height: 36)
-                    .blur(radius: 15)
-                    .offset(x: 3, y: 3)
-            }
             .overlay {
                 Image(systemName: section.symbol)
                     .font(.system(size: 32, weight: .medium))

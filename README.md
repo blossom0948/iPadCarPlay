@@ -22,9 +22,9 @@ iPad에서 실행하는 ETS2 대시보드입니다. iPad Air와 iPadOS 27을 대
 - 앱 배경, 개인 사진, 앱 아이콘 순서와 표시, 화면 모드, 속도 단위, 알림 기준 사용자화
 - iPad 설정 앱에서 익숙한 사이드바와 기본 `Form` 구성 요소를 사용하는 설정 화면
 
-첫 화면은 CarPlay 스타일 앱 그리드와 왼쪽 빠른 실행 도크입니다. 운행 화면은 실제 ETS2 데이터가 없으면 연결 상태와 데이터 대기 상태만 보여주며, 임의 속도·목적지·경로를 생성하지 않습니다.
+첫 화면은 한 페이지에 최대 8개 앱을 보여주는 CarPlay 스타일 그리드와 왼쪽 빠른 실행 도크입니다. 앱 페이지 넘김, 아이콘 누름, 도크 선택, 앱 화면 전환에 SwiftUI 애니메이션을 넣었으며 iPad의 동작 줄이기 설정을 따릅니다. 설정 앱은 카테고리 목록, 별도의 배경화면 화면, 기본 배경과 사진 추가를 제공합니다. 운행 화면은 실제 ETS2 데이터가 없으면 연결 상태와 데이터 대기 상태만 보여주며, 임의 속도·목적지·경로를 생성하지 않습니다.
 
-설정은 보내주신 Liquid Glass 가이드와 [Apple Human Interface Guidelines의 Materials](https://developer.apple.com/design/human-interface-guidelines/materials), [Liquid Glass 적용 안내](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass)를 참고했습니다. SwiftUI `NavigationSplitView`, `List`, `Form`처럼 iPadOS 기본 요소를 사용하고, Liquid Glass는 사이드바 같은 탐색 계층에만 두었습니다. 정보 카드와 목록은 콘텐츠 계층으로 유지합니다.
+설정 첫 화면은 CarPlay식 큰 터치 메뉴이며, 배경화면 선택은 별도 화면으로 열립니다. 세부 설정은 SwiftUI 기본 입력 요소를 사용합니다. 화면 재질과 전환은 보내주신 Liquid Glass 가이드와 [Apple Human Interface Guidelines의 Materials](https://developer.apple.com/design/human-interface-guidelines/materials), [Liquid Glass 적용 안내](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass)를 참고했습니다.
 
 ## 구조
 

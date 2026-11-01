@@ -4,6 +4,7 @@ import UIKit
 import UserNotifications
 
 struct SettingsScreen: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject var model: AppModel
     @ObservedObject var updateChecker: AppUpdateChecker
     @Binding var keepScreenAwake: Bool
@@ -13,52 +14,159 @@ struct SettingsScreen: View {
     @ObservedObject var layoutStore: AppLayoutStore
     @Binding var appearance: String
     @Binding var speedUnit: String
-    @State private var selectedCategory: SettingsCategory? = .wallpaper
+    @State private var selectedCategory: SettingsCategory?
 
     var body: some View {
-        NavigationSplitView {
-            List(selection: $selectedCategory) {
-                Section("ETS2 CARPLAY") {
-                    ForEach(SettingsCategory.allCases) { category in
-                        Label {
-                            Text(category.title)
-                        } icon: {
-                            Image(systemName: category.symbol)
-                                .foregroundStyle(category.color)
+        ZStack {
+            if let selectedCategory {
+                VStack(spacing: 12) {
+                    HStack(spacing: 12) {
+                        Button {
+                            select(nil)
+                        } label: {
+                            Label("설정", systemImage: "chevron.left")
+                                .font(.system(size: 16, weight: .semibold))
+                                .padding(.horizontal, 15)
+                                .frame(height: 44)
+                                .background(Color.white.opacity(0.10), in: Capsule())
+                                .overlay(Capsule().stroke(Color.white.opacity(0.12), lineWidth: 1))
                         }
-                        .tag(category as SettingsCategory?)
+                        .buttonStyle(CarPlayPressButtonStyle(pressedScale: 0.96))
+
+                        Spacer(minLength: 10)
+
+                        Text(selectedCategory.title)
+                            .font(.system(size: 25, weight: .bold, design: .rounded))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+
+                        Spacer(minLength: 10)
+                        Color.clear.frame(width: 72, height: 1)
                     }
+                    .foregroundStyle(.white)
+
+                    detail(for: selectedCategory)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-            }
-            .listStyle(.sidebar)
-            .navigationTitle("설정")
-            .navigationSplitViewColumnWidth(min: 210, ideal: 235, max: 285)
-        } detail: {
-            Group {
-                switch selectedCategory ?? .wallpaper {
-                case .wallpaper:
-                    WallpaperSettingsView(selectedWallpaperID: $selectedWallpaperID, wallpaperStore: wallpaperStore)
-                case .apps:
-                    AppLayoutSettingsView(store: layoutStore)
-                case .general:
-                    GeneralSettingsView(keepScreenAwake: $keepScreenAwake, updateChecker: updateChecker)
-                case .display:
-                    DisplaySettingsView(showStatusBar: $showStatusBar, appearance: $appearance, speedUnit: $speedUnit)
-                case .sound:
-                    SoundSettingsView()
-                case .alerts:
-                    AlertSettingsView()
-                case .connection:
-                    ConnectionSettingsView(model: model)
-                case .about:
-                    AboutSettingsView(model: model)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)
+                ))
+            } else {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("설정")
+                            .font(.system(size: 30, weight: .bold, design: .rounded))
+                        Text("화면과 앱을 사용자화하세요")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.68))
+                    }
+
+                    ScrollView {
+                        LazyVStack(spacing: 9) {
+                            ForEach(SettingsCategory.allCases) { category in
+                                Button { select(category) } label: {
+                                    SettingsCategoryRow(category: category, subtitle: subtitle(for: category))
+                                }
+                                .buttonStyle(CarPlayPressButtonStyle(pressedScale: 0.985))
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .scrollIndicators(.hidden)
                 }
+                .foregroundStyle(.white)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .leading).combined(with: .opacity),
+                    removal: .move(edge: .trailing).combined(with: .opacity)
+                ))
             }
-            .navigationTitle((selectedCategory ?? .wallpaper).title)
-            .background(Color(uiColor: .systemGroupedBackground))
         }
-        .navigationSplitViewStyle(.balanced)
-        .tint(.blue)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .animation(reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.88), value: selectedCategory)
+    }
+
+    private func select(_ category: SettingsCategory?) {
+        if reduceMotion {
+            selectedCategory = category
+        } else {
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.88)) {
+                selectedCategory = category
+            }
+        }
+    }
+
+    private func subtitle(for category: SettingsCategory) -> String {
+        switch category {
+        case .wallpaper: "기본 배경을 고르거나 사진에서 추가"
+        case .apps: "홈 화면에 표시할 앱과 순서"
+        case .general: "운행 화면, 데이터, 소프트웨어 업데이트"
+        case .display: "화면 모드, 상태 표시, 속도 단위"
+        case .sound: "음성 안내와 오디오 재생 설정"
+        case .alerts: "연료, 속도, 차량 상태 경보"
+        case .connection: "Windows PC와 ETS2 연결"
+        case .about: "버전과 프로젝트 정보"
+        }
+    }
+
+    @ViewBuilder
+    private func detail(for category: SettingsCategory) -> some View {
+        switch category {
+        case .wallpaper:
+            WallpaperSettingsView(selectedWallpaperID: $selectedWallpaperID, wallpaperStore: wallpaperStore)
+        case .apps:
+            AppLayoutSettingsView(store: layoutStore)
+        case .general:
+            GeneralSettingsView(keepScreenAwake: $keepScreenAwake, updateChecker: updateChecker)
+        case .display:
+            DisplaySettingsView(showStatusBar: $showStatusBar, appearance: $appearance, speedUnit: $speedUnit)
+        case .sound:
+            SoundSettingsView()
+        case .alerts:
+            AlertSettingsView()
+        case .connection:
+            ConnectionSettingsView(model: model)
+        case .about:
+            AboutSettingsView(model: model)
+        }
+    }
+}
+
+private struct SettingsCategoryRow: View {
+    let category: SettingsCategory
+    let subtitle: String
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: category.symbol)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 46, height: 46)
+                .background(category.color.gradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(category.title)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
+                Text(subtitle)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.62))
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.48))
+        }
+        .padding(.horizontal, 15)
+        .frame(height: 70)
+        .background(Color.white.opacity(0.075), in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 19, style: .continuous)
+                .stroke(Color.white.opacity(0.085), lineWidth: 1)
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
     }
 }
 
@@ -67,7 +175,7 @@ private struct WallpaperSettingsView: View {
     @ObservedObject var wallpaperStore: WallpaperStore
     @State private var photoItem: PhotosPickerItem?
     @State private var importError: String?
-    private let columns = [GridItem(.adaptive(minimum: 145), spacing: 14)]
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 16), count: 3)
 
     private var activePreset: WallpaperPreset { WallpaperPreset(rawValue: selectedWallpaperID) ?? .aurora }
 
@@ -75,16 +183,14 @@ private struct WallpaperSettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("배경화면")
-                        .font(.system(size: 27, weight: .bold, design: .rounded))
-                    Text("앱 배경을 선택하거나 사진 보관함에서 원하는 사진을 추가하세요.")
+                    Text("앱에 포함된 배경을 고르거나 사진 보관함에서 직접 추가하세요.")
                         .font(.system(size: 14, weight: .regular))
                         .foregroundStyle(.secondary)
                 }
 
                 ZStack(alignment: .bottomLeading) {
                     WallpaperCanvas(preset: activePreset, image: selectedWallpaperID == "custom" ? wallpaperStore.customImage : nil)
-                        .frame(height: 170)
+                    .frame(height: 190)
                     LinearGradient(colors: [.clear, .black.opacity(0.56)], startPoint: .center, endPoint: .bottom)
                     HStack(alignment: .bottom) {
                         VStack(alignment: .leading, spacing: 4) {
@@ -201,7 +307,7 @@ private struct WallpaperChoiceButton: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(CarPlayPressButtonStyle(pressedScale: 0.97))
         .accessibilityLabel("\(name) 배경화면")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }

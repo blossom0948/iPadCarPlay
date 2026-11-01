@@ -7,14 +7,21 @@ import UIKit
 struct AppsScreen: View {
     @ObservedObject var layoutStore: AppLayoutStore
     let onSelect: (AppSection) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var selectedPage = 0
 
     var body: some View {
         GeometryReader { geometry in
-            let columnCount = geometry.size.width >= 900 ? 5 : 4
-            let columns = Array(repeating: GridItem(.flexible(), spacing: 30, alignment: .center), count: columnCount)
+            let columnCount = geometry.size.width >= 760 ? 4 : 3
+            let pageSize = columnCount * 2
+            let sections = layoutStore.visibleSections
+            let pages = stride(from: 0, to: sections.count, by: pageSize).map { start in
+                Array(sections[start..<min(start + pageSize, sections.count)])
+            }
+            let columns = Array(repeating: GridItem(.flexible(), spacing: 26, alignment: .center), count: columnCount)
 
             Group {
-                if layoutStore.visibleSections.isEmpty {
+                if sections.isEmpty {
                     ContentUnavailableView {
                         Label("표시할 앱이 없습니다", systemImage: "square.grid.2x2")
                     } description: {
@@ -22,31 +29,70 @@ struct AppsScreen: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    ScrollView {
-                        LazyVGrid(columns: columns, spacing: 42) {
-                            ForEach(layoutStore.visibleSections) { section in
-                                Button { onSelect(section) } label: {
-                                    VStack(spacing: 12) {
-                                        AppIconTile(section: section)
-                                            .frame(width: 92, height: 92)
-                                            .shadow(color: section.color.opacity(0.20), radius: 13, y: 7)
-                                        Text(section.title)
-                                            .font(.system(size: 14, weight: .semibold))
-                                            .foregroundStyle(.white.opacity(0.94))
-                                            .lineLimit(1)
-                                            .minimumScaleFactor(0.8)
+                    VStack(spacing: 0) {
+                        TabView(selection: $selectedPage) {
+                            ForEach(pages.indices, id: \.self) { pageIndex in
+                                LazyVGrid(columns: columns, spacing: 38) {
+                                    let page = pages[pageIndex]
+                                    if page.count <= columnCount {
+                                        ForEach(0..<((columnCount - page.count) / 2), id: \.self) { _ in
+                                            Color.clear
+                                                .frame(height: 137)
+                                                .accessibilityHidden(true)
+                                        }
                                     }
-                                    .frame(maxWidth: .infinity)
-                                    .contentShape(Rectangle())
+                                    ForEach(page) { section in
+                                        Button { onSelect(section) } label: {
+                                            VStack(spacing: 13) {
+                                                AppIconTile(section: section)
+                                                    .frame(width: 100, height: 100)
+                                                Text(section.title)
+                                                    .font(.system(size: 15, weight: .semibold))
+                                                    .foregroundStyle(.white.opacity(0.96))
+                                                    .lineLimit(1)
+                                                    .minimumScaleFactor(0.8)
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .contentShape(Rectangle())
+                                        }
+                                        .buttonStyle(CarPlayPressButtonStyle(pressedScale: 0.91))
+                                    }
                                 }
-                                .buttonStyle(.plain)
+                                .frame(maxWidth: 1_000)
+                                .padding(.horizontal, 22)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .tag(pageIndex)
                             }
                         }
-                        .frame(maxWidth: 1_040)
-                        .frame(maxWidth: .infinity, minHeight: geometry.size.height)
-                        .padding(.vertical, 22)
+                        .tabViewStyle(.page(indexDisplayMode: .never))
+                        .animation(
+                            reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.88),
+                            value: selectedPage
+                        )
+
+                        if pages.count > 1 {
+                            HStack(spacing: 9) {
+                                ForEach(pages.indices, id: \.self) { pageIndex in
+                                    Capsule()
+                                        .fill(pageIndex == selectedPage ? Color.white : Color.white.opacity(0.34))
+                                        .frame(width: pageIndex == selectedPage ? 18 : 7, height: 7)
+                                        .animation(
+                                            reduceMotion ? nil : .spring(response: 0.30, dampingFraction: 0.78),
+                                            value: selectedPage
+                                        )
+                                }
+                            }
+                            .padding(.bottom, 10)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("앱 페이지 \(selectedPage + 1), 총 \(pages.count)페이지")
+                        }
                     }
-                    .scrollIndicators(.hidden)
+                    .onChange(of: sections) { _, _ in
+                        selectedPage = 0
+                    }
+                    .onChange(of: columnCount) { _, _ in
+                        selectedPage = 0
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
