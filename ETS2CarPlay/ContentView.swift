@@ -31,44 +31,27 @@ struct ContentView: View {
                 ? min(geometry.size.height, geometry.size.width / referenceAspect)
                 : geometry.size.height
             let railWidth = min(320, max(72, geometry.size.width * 0.085))
-            let useReferenceHome = isCarPlayAspect
-                && geometry.size.width > geometry.size.height
-                && model.selection == .apps
-                && showStatusBar
-                && appearance == "dark"
-                && selectedWallpaperID == WallpaperPreset.aurora.rawValue
-                && layoutStore.visibleSections == AppSection.launcherItems
 
             ZStack {
                 Color.black.ignoresSafeArea()
 
-                Group {
-                    if useReferenceHome {
-                        ReferenceCarPlayHome { section in
+                ZStack {
+                    WallpaperCanvas(preset: activePreset, image: selectedWallpaperID == "custom" ? wallpaperStore.customImage : nil)
+                        .overlay(Color.black.opacity(model.selection == .apps ? 0.08 : 0.42))
+
+                    HStack(spacing: 0) {
+                        SideRail(bridge: model.bridge, selection: model.selection, showStatusBar: showStatusBar, railWidth: railWidth, railHeight: screenHeight) { section in
                             model.select(section, reduceMotion: reduceMotion)
                         }
-                        .transition(.opacity)
-                    } else {
-                        ZStack {
-                            WallpaperCanvas(preset: activePreset, image: selectedWallpaperID == "custom" ? wallpaperStore.customImage : nil)
-                                .overlay(Color.black.opacity(model.selection == .apps ? 0.08 : 0.42))
 
-                            HStack(spacing: 0) {
-                                SideRail(bridge: model.bridge, selection: model.selection, showStatusBar: showStatusBar, railWidth: railWidth, railHeight: screenHeight) { section in
-                                    model.select(section, reduceMotion: reduceMotion)
-                                }
-
-                                activeScreen
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                    .id(model.selection)
-                                    .transition(.asymmetric(
-                                        insertion: .opacity.combined(with: .scale(scale: 0.97)),
-                                        removal: .opacity
-                                    ))
-                            }
-                        }
+                        activeScreen
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .id(model.selection)
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.97)),
+                                removal: .opacity
+                            ))
                     }
-                        .transition(.opacity)
                 }
                 .frame(width: geometry.size.width, height: screenHeight)
                 .clipShape(RoundedRectangle(cornerRadius: isCarPlayAspect ? min(40, screenHeight * 0.065) : 0, style: .continuous))
@@ -131,77 +114,6 @@ struct ContentView: View {
                 speedUnit: $speedUnit,
                 screenAspect: $screenAspect
             )
-        }
-    }
-}
-
-private struct ReferenceCarPlayHome: View {
-    let onSelect: (AppSection) -> Void
-
-    private let appColumnCenters: [CGFloat] = [0.188, 0.362, 0.538, 0.709, 0.882]
-    private let dockSections: [AppSection] = [.navigation, .music, .phone]
-    private let dockCentersY: [CGFloat] = [0.337, 0.503, 0.666]
-
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .topLeading) {
-                Image("CarPlayHomeReference")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                    .clipped()
-
-                ForEach(AppSection.launcherItems.indices, id: \.self) { index in
-                    let section = AppSection.launcherItems[index]
-                    let column = index % 5
-                    let row = index / 5
-                    Button {
-                        onSelect(section)
-                    } label: {
-                        Color.clear
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .contentShape(Rectangle())
-                    }
-                    .frame(width: geometry.size.width * 0.155, height: geometry.size.height * 0.37)
-                    .position(
-                        x: geometry.size.width * appColumnCenters[column],
-                        y: geometry.size.height * (row == 0 ? 0.29 : 0.69)
-                    )
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(section.title)
-                }
-
-                ForEach(dockSections.indices, id: \.self) { index in
-                    Button {
-                        onSelect(dockSections[index])
-                    } label: {
-                        Color.clear
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .contentShape(Rectangle())
-                    }
-                    .frame(width: geometry.size.width * 0.082, height: geometry.size.height * 0.18)
-                    .position(
-                        x: geometry.size.width * 0.041,
-                        y: geometry.size.height * dockCentersY[index]
-                    )
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(dockSections[index].title)
-                }
-
-                Button {
-                    onSelect(.apps)
-                } label: {
-                    Color.clear
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .contentShape(Rectangle())
-                }
-                .frame(width: geometry.size.width * 0.10, height: geometry.size.height * 0.17)
-                .position(x: geometry.size.width * 0.041, y: geometry.size.height * 0.92)
-                .buttonStyle(.plain)
-                .accessibilityLabel("홈 화면")
-            }
-            .frame(width: geometry.size.width, height: geometry.size.height)
-            .clipped()
         }
     }
 }
