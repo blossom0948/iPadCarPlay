@@ -1,0 +1,262 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* ETS2CarPlayApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* ETS2CarPlayApp.swift */; };
+		A10000000000000000000002 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* AppModel.swift */; };
+		A10000000000000000000003 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000003 /* ContentView.swift */; };
+		A10000000000000000000004 /* DashboardViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000004 /* DashboardViews.swift */; };
+		A10000000000000000000005 /* SimpleScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* SimpleScreens.swift */; };
+		A10000000000000000000006 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000006 /* SettingsScreen.swift */; };
+		A10000000000000000000007 /* BridgeModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000008 /* BridgeModels.swift */; };
+		A10000000000000000000008 /* BridgeConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009 /* BridgeConnectionManager.swift */; };
+		A10000000000000000000009 /* TripRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A /* TripRecorder.swift */; };
+		A1000000000000000000000A /* LocalAudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000B /* LocalAudioPlayer.swift */; };
+		A1000000000000000000000B /* VoiceAssistant.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000C /* VoiceAssistant.swift */; };
+		A1000000000000000000000C /* YouTubePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000D /* YouTubePlayer.swift */; };
+		A1000000000000000000000D /* AppLayoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000E /* AppLayoutStore.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B10000000000000000000001 /* ETS2CarPlayApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ETS2CarPlayApp.swift; sourceTree = "<group>"; };
+		B10000000000000000000002 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		B10000000000000000000003 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B10000000000000000000004 /* DashboardViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViews.swift; sourceTree = "<group>"; };
+		B10000000000000000000005 /* SimpleScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimpleScreens.swift; sourceTree = "<group>"; };
+		B10000000000000000000006 /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
+		B10000000000000000000008 /* BridgeModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeModels.swift; sourceTree = "<group>"; };
+		B10000000000000000000009 /* BridgeConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeConnectionManager.swift; sourceTree = "<group>"; };
+		B1000000000000000000000A /* TripRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripRecorder.swift; sourceTree = "<group>"; };
+		B1000000000000000000000B /* LocalAudioPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAudioPlayer.swift; sourceTree = "<group>"; };
+		B1000000000000000000000C /* VoiceAssistant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAssistant.swift; sourceTree = "<group>"; };
+		B1000000000000000000000D /* YouTubePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubePlayer.swift; sourceTree = "<group>"; };
+		B1000000000000000000000E /* AppLayoutStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLayoutStore.swift; sourceTree = "<group>"; };
+		B1000000000000000000000F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B10000000000000000000007 /* ETS2CarPlay.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ETS2CarPlay.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C10000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D10000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				D10000000000000000000002 /* ETS2CarPlay */,
+				D10000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D10000000000000000000002 /* ETS2CarPlay */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000001 /* ETS2CarPlayApp.swift */,
+				B10000000000000000000002 /* AppModel.swift */,
+				B10000000000000000000003 /* ContentView.swift */,
+				B10000000000000000000004 /* DashboardViews.swift */,
+				B10000000000000000000005 /* SimpleScreens.swift */,
+				B10000000000000000000006 /* SettingsScreen.swift */,
+				B10000000000000000000008 /* BridgeModels.swift */,
+				B10000000000000000000009 /* BridgeConnectionManager.swift */,
+				B1000000000000000000000A /* TripRecorder.swift */,
+				B1000000000000000000000B /* LocalAudioPlayer.swift */,
+				B1000000000000000000000C /* VoiceAssistant.swift */,
+				B1000000000000000000000D /* YouTubePlayer.swift */,
+				B1000000000000000000000E /* AppLayoutStore.swift */,
+				B1000000000000000000000F /* Info.plist */,
+			);
+			path = ETS2CarPlay;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000007 /* ETS2CarPlay.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E10000000000000000000001 /* ETS2CarPlay */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F10000000000000000000002 /* Build configuration list for PBXNativeTarget "ETS2CarPlay" */;
+			buildPhases = (
+				C10000000000000000000003 /* Sources */,
+				C10000000000000000000001 /* Frameworks */,
+				C10000000000000000000002 /* Resources */,
+			);
+			buildRules = ();
+			dependencies = ();
+			name = ETS2CarPlay;
+			productName = ETS2CarPlay;
+			productReference = B10000000000000000000007 /* ETS2CarPlay.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E10000000000000000000002 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 2710;
+				TargetAttributes = {
+					E10000000000000000000001 = {
+						CreatedOnToolsVersion = 27.1;
+					};
+				};
+			};
+			buildConfigurationList = F10000000000000000000001 /* Build configuration list for PBXProject "ETS2CarPlay" */;
+			compatibilityVersion = "Xcode 15.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D10000000000000000000001;
+			productRefGroup = D10000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E10000000000000000000001 /* ETS2CarPlay */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C10000000000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C10000000000000000000003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000001 /* ETS2CarPlayApp.swift in Sources */,
+				A10000000000000000000002 /* AppModel.swift in Sources */,
+				A10000000000000000000003 /* ContentView.swift in Sources */,
+				A10000000000000000000004 /* DashboardViews.swift in Sources */,
+				A10000000000000000000005 /* SimpleScreens.swift in Sources */,
+				A10000000000000000000006 /* SettingsScreen.swift in Sources */,
+				A10000000000000000000007 /* BridgeModels.swift in Sources */,
+				A10000000000000000000008 /* BridgeConnectionManager.swift in Sources */,
+				A10000000000000000000009 /* TripRecorder.swift in Sources */,
+				A1000000000000000000000A /* LocalAudioPlayer.swift in Sources */,
+				A1000000000000000000000B /* VoiceAssistant.swift in Sources */,
+				A1000000000000000000000C /* YouTubePlayer.swift in Sources */,
+				A1000000000000000000000D /* AppLayoutStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		F10000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		F10000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		F10000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = ETS2CarPlay/Info.plist;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_KEY_CFBundleDisplayName = "ETS2 CarPlay";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.blossom0948.ets2carplay;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Debug;
+		};
+		F10000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = ETS2CarPlay/Info.plist;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_KEY_CFBundleDisplayName = "ETS2 CarPlay";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.blossom0948.ets2carplay;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F10000000000000000000001 /* Build configuration list for PBXProject "ETS2CarPlay" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F10000000000000000000003 /* Debug */,
+				F10000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F10000000000000000000002 /* Build configuration list for PBXNativeTarget "ETS2CarPlay" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F10000000000000000000005 /* Debug */,
+				F10000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = E10000000000000000000002 /* Project object */;
+}

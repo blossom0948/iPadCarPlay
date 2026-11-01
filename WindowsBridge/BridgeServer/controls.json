@@ -1,0 +1,14 @@
+{
+  "horn": "NONE",
+  "lights.toggle": "NONE",
+  "wipers.toggle": "NONE",
+  "parkingBrake.toggle": "NONE",
+  "engine.toggle": "NONE",
+  "gear.up": "NONE",
+  "gear.down": "NONE",
+  "engineBrake.toggle": "NONE",
+  "retarder.up": "NONE",
+  "retarder.down": "NONE",
+  "cruise.toggle": "NONE",
+  "camera.next": "NONE"
+}

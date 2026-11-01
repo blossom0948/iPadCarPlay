@@ -1,0 +1,6 @@
+.DS_Store
+DerivedData/
+WindowsBridge/**/bin/
+WindowsBridge/**/obj/
+WindowsBridge/build/
+WindowsBridge/dist/
