@@ -416,8 +416,8 @@ private struct DisplaySettingsView: View {
             }
             Section("화면 구성") {
                 Picker("화면 비율", selection: $screenAspect) {
+                    Text("iPad 전체 화면 · 권장").tag("ipad")
                     Text("CarPlay 와이드 · 8:3").tag("carPlay")
-                    Text("iPad 전체 화면").tag("ipad")
                 }
                 Picker("화면 모드", selection: $appearance) {
                     Text("어둡게").tag("dark")
@@ -543,7 +543,7 @@ private struct ConnectionSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Windows 브리지") {
+            Section {
                 LabeledContent("상태", value: bridge.status.label)
                 LabeledContent("ETS2", value: bridge.gameState.label)
                 TextField("Windows PC의 IPv4 주소", text: $bridgeHost)
@@ -568,6 +568,8 @@ private struct ConnectionSettingsView: View {
                     Button("연결 해제", systemImage: "xmark.circle", role: .destructive) { bridge.disconnect() }
                     Button("페어링 삭제", systemImage: "trash", role: .destructive) { bridge.forgetPairing() }
                 }
+            } header: {
+                Text("Windows 브리지")
             } footer: {
                 Text("같은 신뢰할 수 있는 Wi‑Fi에 연결하세요. 페어링 코드는 Windows 브리지 창에 표시되며 한 번만 사용됩니다.")
             }

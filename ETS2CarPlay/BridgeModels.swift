@@ -9,6 +9,7 @@ struct GameWorldPosition: Codable, Equatable {
 
 struct TelemetrySnapshot: Codable, Equatable, Identifiable {
     let sequence: UInt64
+    var id: UInt64 { sequence }
     let gameActive: Bool
     let paused: Bool
     let speedMps: Double?

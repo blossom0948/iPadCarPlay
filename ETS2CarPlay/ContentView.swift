@@ -15,9 +15,13 @@ struct ContentView: View {
     @AppStorage("showStatusBar") private var showStatusBar = true
     @AppStorage("keepScreenAwake") private var keepScreenAwake = false
     @AppStorage("appearance") private var appearance = "dark"
-    @AppStorage("screenAspect") private var screenAspect = "carPlay"
+    @AppStorage("screenAspect") private var screenAspect = "ipad"
+    @AppStorage("didMigrateToIPadCanvas") private var didMigrateToIPadCanvas = false
+    @AppStorage("splitMediaEnabled") private var splitMediaEnabled = false
+    @AppStorage("splitMediaRatio") private var splitMediaRatio = 0.54
     @AppStorage("bridgeHost") private var bridgeHost = ""
     @AppStorage("bridgePort") private var bridgePort = 8765
+    @State private var mediaService: YouTubeService = .youtube
 
     private var activePreset: WallpaperPreset {
         WallpaperPreset(rawValue: selectedWallpaperID) ?? .aurora
@@ -40,17 +44,38 @@ struct ContentView: View {
                         .overlay(Color.black.opacity(model.selection == .apps ? 0.08 : 0.42))
 
                     HStack(spacing: 0) {
-                        SideRail(bridge: model.bridge, selection: model.selection, showStatusBar: showStatusBar, railWidth: railWidth, railHeight: screenHeight) { section in
-                            model.select(section, reduceMotion: reduceMotion)
+                        SideRail(
+                            bridge: model.bridge,
+                            selection: model.selection,
+                            showStatusBar: showStatusBar,
+                            railWidth: railWidth,
+                            railHeight: screenHeight,
+                            splitMediaEnabled: splitMediaEnabled,
+                            onToggleSplit: {
+                                withAnimation(reduceMotion ? nil : .spring(response: 0.44, dampingFraction: 0.86)) {
+                                    splitMediaEnabled.toggle()
+                                }
+                            }
+                        ) { section in
+                            selectSection(section)
                         }
 
-                        activeScreen
+                        Group {
+                            if splitMediaEnabled {
+                                MediaSplitView(service: mediaService, ratio: $splitMediaRatio) {
+                                    splitPrimaryScreen
+                                }
+                                .transition(.move(edge: .trailing).combined(with: .opacity))
+                            } else {
+                                activeScreen
+                                    .transition(.asymmetric(
+                                        insertion: .opacity.combined(with: .scale(scale: 0.97)),
+                                        removal: .opacity
+                                    ))
+                            }
+                        }
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .id(model.selection)
-                            .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.97)),
-                                removal: .opacity
-                            ))
+                            .animation(reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.88), value: splitMediaEnabled)
                     }
                 }
                 .frame(width: geometry.size.width, height: screenHeight)
@@ -61,6 +86,10 @@ struct ContentView: View {
                 UIApplication.shared.isIdleTimerDisabled = keepScreenAwake
             }
             .task {
+                if !didMigrateToIPadCanvas {
+                    screenAspect = "ipad"
+                    didMigrateToIPadCanvas = true
+                }
                 model.attach(modelContext: modelContext)
                 if !bridgeHost.isEmpty {
                     model.bridge.connect(host: bridgeHost, port: bridgePort, pairingCode: "")
@@ -76,6 +105,7 @@ struct ContentView: View {
         }
         .preferredColorScheme(appearance == "system" ? nil : (appearance == "light" ? .light : .dark))
         .statusBarHidden(true)
+        .ignoresSafeArea()
     }
 
     @ViewBuilder
@@ -84,13 +114,19 @@ struct ContentView: View {
         case .dashboard:
             DashboardScreen(model: model, speedUnit: speedUnit)
         case .apps:
-            AppsScreen(layoutStore: layoutStore) { model.select($0, reduceMotion: reduceMotion) }
+            AppsScreen(
+                layoutStore: layoutStore,
+                onSelect: selectSection,
+                preferredColumns: screenAspect == "carPlay" ? 5 : 6
+            )
         case .navigation:
             NavigationScreen(model: model, speedUnit: speedUnit)
         case .music:
             MusicScreen(player: model.audio)
         case .youtube:
-            YouTubeScreen()
+            YouTubeScreen(initialService: .youtube)
+        case .youtubeMusic:
+            YouTubeScreen(initialService: .youtubeMusic)
         case .phone:
             VirtualPhoneScreen(model: model)
         case .messages:
@@ -116,6 +152,25 @@ struct ContentView: View {
             )
         }
     }
+
+    @ViewBuilder
+    private var splitPrimaryScreen: some View {
+        switch model.selection {
+        case .apps, .youtube, .youtubeMusic:
+            DashboardScreen(model: model, speedUnit: speedUnit)
+        default:
+            activeScreen
+        }
+    }
+
+    private func selectSection(_ section: AppSection) {
+        switch section {
+        case .youtube: mediaService = .youtube
+        case .youtubeMusic: mediaService = .youtubeMusic
+        default: break
+        }
+        model.select(section, reduceMotion: reduceMotion)
+    }
 }
 
 private extension AppModel {
@@ -136,6 +191,8 @@ private struct SideRail: View {
     let showStatusBar: Bool
     let railWidth: CGFloat
     let railHeight: CGFloat
+    let splitMediaEnabled: Bool
+    let onToggleSplit: () -> Void
     let onSelect: (AppSection) -> Void
 
     private let dockItems: [AppSection] = [.navigation, .music, .phone]
@@ -178,12 +235,16 @@ private struct SideRail: View {
             .offset(y: railHeight * 0.01)
 
             Spacer(minLength: 12)
+            splitButton
+                .padding(.bottom, 10)
+
+            Spacer(minLength: 8)
             dockButton(.apps)
                 .padding(.bottom, 8)
         }
         .frame(width: railWidth)
         .frame(maxHeight: .infinity)
-        .background(Color.black.opacity(0.22))
+        .modifier(AdaptiveLiquidGlass(cornerRadius: 0))
         .overlay(alignment: .trailing) {
             Rectangle()
                 .fill(Color.white.opacity(0.10))
@@ -193,13 +254,34 @@ private struct SideRail: View {
 
     private var dockIconSize: CGFloat { railWidth * 0.55 }
 
+    private var splitButton: some View {
+        Button(action: onToggleSplit) {
+            Image(systemName: "rectangle.split.2x1")
+                .font(.system(size: dockIconSize * 0.50, weight: .semibold))
+                .modifier(SplitIconMotion(enabled: splitMediaEnabled))
+                .foregroundStyle(.white)
+                .frame(width: dockIconSize + 8, height: dockIconSize + 8)
+                .background {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color.white.opacity(splitMediaEnabled ? 0.24 : 0.08))
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.white.opacity(splitMediaEnabled ? 0.36 : 0.10), lineWidth: 1)
+                }
+        }
+        .buttonStyle(CarPlayPressButtonStyle(pressedScale: 0.91))
+        .accessibilityLabel(splitMediaEnabled ? "분할 화면 닫기" : "대시보드와 미디어 분할 화면 열기")
+        .accessibilityAddTraits(splitMediaEnabled ? .isSelected : [])
+    }
+
     private var statusColor: Color {
         guard bridge.isConnected else { return .white.opacity(0.56) }
         switch bridge.gameState {
-        case .live: .green
-        case .paused: .orange
-        case .stale: .red
-        case .waitingForGame: .yellow
+        case .live: return Color.green
+        case .paused: return Color.orange
+        case .stale: return Color.red
+        case .waitingForGame: return Color.yellow
         }
     }
 
@@ -210,8 +292,13 @@ private struct SideRail: View {
             Group {
                 if item == .apps {
                     LauncherMenuGlyph(side: dockIconSize)
+                        .padding(8)
+                        .background {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Color.white.opacity(selection == item ? 0.22 : 0.08))
+                        }
                 } else {
-                    MiniDockIcon(section: item)
+                    MiniDockIcon(section: item, isSelected: selection == item)
                         .frame(width: dockIconSize, height: dockIconSize)
                 }
             }
@@ -221,6 +308,111 @@ private struct SideRail: View {
         .buttonStyle(CarPlayPressButtonStyle(pressedScale: 0.92))
         .accessibilityLabel(item == .apps ? "홈 화면" : item.title)
         .accessibilityAddTraits(selection == item ? .isSelected : [])
+    }
+}
+
+private struct AdaptiveLiquidGlass: ViewModifier {
+    let cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.glassEffect(.regular, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        } else {
+            content.background(Color.black.opacity(0.26))
+        }
+    }
+}
+
+private struct SplitIconMotion: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let enabled: Bool
+
+    func body(content: Content) -> some View {
+        if reduceMotion {
+            content
+        } else {
+            content.symbolEffect(.bounce, value: enabled)
+        }
+    }
+}
+
+private struct MediaSplitView<Primary: View>: View {
+    let service: YouTubeService
+    @Binding var ratio: Double
+    let primary: Primary
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    init(service: YouTubeService, ratio: Binding<Double>, @ViewBuilder primary: () -> Primary) {
+        self.service = service
+        _ratio = ratio
+        self.primary = primary()
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            let dividerWidth: CGFloat = 20
+            let usableWidth = max(0, geometry.size.width - dividerWidth)
+            let leadingWidth = usableWidth * CGFloat(min(max(ratio, 0.34), 0.66))
+
+            HStack(spacing: 0) {
+                primary
+                    .frame(width: leadingWidth)
+                    .frame(maxHeight: .infinity)
+                    .clipped()
+
+                SplitPaneDivider(ratio: $ratio, totalWidth: usableWidth)
+                    .frame(width: dividerWidth)
+
+                YouTubeScreen(initialService: service)
+                    .id(service)
+                    .frame(width: usableWidth - leadingWidth)
+                    .frame(maxHeight: .infinity)
+                    .clipped()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.vertical, 10)
+            .animation(reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.88), value: ratio)
+        }
+    }
+}
+
+private struct SplitPaneDivider: View {
+    @Binding var ratio: Double
+    let totalWidth: CGFloat
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var dragStartRatio: Double?
+
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(Color.white.opacity(0.001))
+            Capsule()
+                .fill(Color.white.opacity(0.34))
+                .frame(width: 4, height: 66)
+                .shadow(color: .black.opacity(0.18), radius: 5)
+        }
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 1)
+                .onChanged { value in
+                    if dragStartRatio == nil { dragStartRatio = ratio }
+                    let startRatio = dragStartRatio ?? ratio
+                    let proposed = startRatio + Double(value.translation.width / max(totalWidth, 1))
+                    ratio = min(max(proposed, 0.34), 0.66)
+                }
+                .onEnded { _ in dragStartRatio = nil }
+        )
+        .accessibilityElement()
+        .accessibilityLabel("분할 화면 크기 조절")
+        .accessibilityValue("왼쪽 \(Int(ratio * 100))퍼센트")
+        .accessibilityAdjustableAction { direction in
+            guard !reduceMotion else { return }
+            switch direction {
+            case .increment: ratio = min(ratio + 0.04, 0.66)
+            case .decrement: ratio = max(ratio - 0.04, 0.34)
+            @unknown default: break
+            }
+        }
     }
 }
 
@@ -247,9 +439,10 @@ private struct LauncherMenuGlyph: View {
 
 private struct MiniDockIcon: View {
     let section: AppSection
+    var isSelected = false
 
     var body: some View {
-        AppIconTile(section: section)
+        AppIconTile(section: section, isSelected: isSelected)
     }
 }
 
@@ -423,6 +616,8 @@ private struct CarPlayWallpaperWave: Shape {
 
 struct AppIconTile: View {
     let section: AppSection
+    var isSelected = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         GeometryReader { geometry in
@@ -444,21 +639,33 @@ struct AppIconTile: View {
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .stroke(section == .dashboard || section == .youtube || section == .controls
-                                ? Color.black.opacity(0.10) : Color.white.opacity(0.22), lineWidth: 1)
+                        .stroke(Color.white.opacity(isSelected ? 0.85 : 0.22), lineWidth: isSelected ? 2 : 1)
                 }
+                .shadow(color: .black.opacity(isSelected ? 0.28 : 0.14), radius: isSelected ? 12 : 4, y: isSelected ? 6 : 2)
+                .scaleEffect(isSelected && !reduceMotion ? 1.045 : 1)
+                .animation(reduceMotion ? nil : .spring(response: 0.30, dampingFraction: 0.68), value: isSelected)
         }
     }
 
     private var iconBackground: LinearGradient {
-        if section == .settings || section == .dashboard || section == .youtube || section == .controls {
+        if section == .settings {
             return LinearGradient(
-                colors: section == .settings
-                    ? [Color(white: 0.96), Color(white: 0.72)]
-                    : [Color.white, Color(white: 0.94)],
+                colors: [Color(white: 0.96), Color(white: 0.72)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
+        }
+        if section == .youtube {
+            return LinearGradient(colors: [Color(red: 1.0, green: 0.22, blue: 0.19), Color(red: 0.78, green: 0.03, blue: 0.08)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+        if section == .youtubeMusic {
+            return LinearGradient(colors: [Color(red: 0.88, green: 0.12, blue: 0.20), Color(red: 0.49, green: 0.04, blue: 0.17)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+        if section == .dashboard {
+            return LinearGradient(colors: [Color(red: 0.17, green: 0.28, blue: 0.50), Color(red: 0.07, green: 0.10, blue: 0.22)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+        if section == .controls {
+            return LinearGradient(colors: [Color(red: 0.24, green: 0.61, blue: 0.92), Color(red: 0.10, green: 0.32, blue: 0.76)], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
         if section == .navigation {
             return LinearGradient(colors: [Color.white, Color(white: 0.92)], startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -488,23 +695,33 @@ private struct CarPlayIconArtwork: View {
                     .font(.system(size: side * 0.48, weight: .medium))
                     .foregroundStyle(.white)
             case .youtube:
-                Text("N")
-                    .font(.system(size: side * 0.62, weight: .black, design: .default))
-                    .foregroundStyle(LinearGradient(colors: [.red, Color(red: 0.82, green: 0.06, blue: 0.15)], startPoint: .top, endPoint: .bottom))
+                ZStack {
+                    RoundedRectangle(cornerRadius: side * 0.15, style: .continuous)
+                        .fill(.white)
+                        .frame(width: side * 0.67, height: side * 0.47)
+                    Image(systemName: "play.fill")
+                        .font(.system(size: side * 0.26, weight: .black))
+                        .foregroundStyle(Color(red: 0.88, green: 0.08, blue: 0.12))
+                        .offset(x: side * 0.015)
+                }
+            case .youtubeMusic:
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.96))
+                        .frame(width: side * 0.66, height: side * 0.66)
+                    Image(systemName: "play.fill")
+                        .font(.system(size: side * 0.27, weight: .black))
+                        .foregroundStyle(Color(red: 0.77, green: 0.05, blue: 0.15))
+                        .offset(x: side * 0.015)
+                }
             case .stats:
-                Image(systemName: "book.fill")
-                    .font(.system(size: side * 0.64, weight: .medium))
+                Image(systemName: "chart.bar.fill")
+                    .font(.system(size: side * 0.56, weight: .semibold))
                     .foregroundStyle(.white)
             case .controls:
-                VStack(spacing: 0) {
-                    Text("MON")
-                        .font(.system(size: side * 0.18, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.red)
-                    Text("6")
-                        .font(.system(size: side * 0.54, weight: .medium, design: .rounded))
-                        .foregroundStyle(Color(white: 0.18))
-                        .offset(y: -side * 0.025)
-                }
+                Image(systemName: "steeringwheel")
+                    .font(.system(size: side * 0.58, weight: .medium))
+                    .foregroundStyle(.white)
             case .settings:
                 Image(systemName: "gearshape.fill")
                     .font(.system(size: side * 0.64, weight: .medium))
@@ -522,7 +739,7 @@ private struct CarPlayIconArtwork: View {
                     .foregroundStyle(.white)
             }
         }
-        .shadow(color: .black.opacity(section == .settings || section == .youtube || section == .controls ? 0 : 0.12), radius: 2, y: 1)
+        .shadow(color: .black.opacity(section == .settings ? 0.08 : 0.12), radius: 2, y: 1)
     }
 }
 

@@ -18,7 +18,7 @@ The closest genuine CarPlay receiver we found is CarCast/iCarCast. Its iPad app 
 
 ## Screen layout used here
 
-The supplied reference screen measures about 8:3. Apple's CarPlay design guide includes a 1920×720 display (also 8:3), alongside 5:3 and 16:9 display sizes. The app opens in landscape, defaults to a centered 8:3 CarPlay-style canvas on iPad, and offers an iPad full-screen option under **Settings → Display → Screen ratio**.
+The supplied reference screen measures about 8:3. Apple's CarPlay design guide includes a 1920×720 display (also 8:3), alongside 5:3 and 16:9 display sizes. The app now defaults to full iPad screen in either orientation and offers an optional 8:3 CarPlay-style canvas under **Settings → Display → Screen ratio**. It also supports adjustable in-app dashboard/media split view and iPadOS window resizing.
 
 The launcher follows the reference's main proportions and interaction pattern:
 

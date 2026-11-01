@@ -18,7 +18,23 @@ struct DashboardScreen: View {
 
     var body: some View {
         GeometryReader { geometry in
-            HStack(spacing: 13) {
+            if geometry.size.width < 720 {
+                ScrollView(.vertical) {
+                    VStack(spacing: 12) {
+                        NavigationDataCard(snapshot: snapshot, gameState: bridge.gameState)
+                            .frame(minHeight: max(250, geometry.size.height * 0.43))
+                        VStack(spacing: 12) {
+                            MusicMiniCard(player: model.audio)
+                                .frame(minHeight: 180)
+                            TruckTelemetryCard(snapshot: snapshot, speedUnit: speedUnit)
+                                .frame(minHeight: 210)
+                        }
+                    }
+                    .padding(.vertical, 3)
+                }
+                .scrollIndicators(.hidden)
+            } else {
+                HStack(spacing: 13) {
                     NavigationDataCard(snapshot: snapshot, gameState: bridge.gameState)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     VStack(spacing: 16) {
@@ -29,7 +45,8 @@ struct DashboardScreen: View {
                     }
                     .frame(width: min(max(geometry.size.width * 0.34, 290), 360))
                 }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
     }
 }

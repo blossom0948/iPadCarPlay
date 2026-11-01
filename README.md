@@ -19,12 +19,14 @@ iPad에서 실행하는 ETS2 대시보드입니다. iPad Air와 iPadOS 27을 대
 - 버튼을 눌러 시작하는 한국어 음성 인식 및 음성 안내
 - Apple Music 카탈로그 검색·재생과 iPad에 가져온 오디오 파일 재생, 백그라운드 재생, 잠금 화면 제어, 가져온 파일의 음성 중 음량 낮추기
 - 앱 실행 시 GitHub 공개 릴리스에서 새 버전과 변경 내용을 자동 확인
-- 공식 YouTube 임베드 플레이어에 동영상 URL 또는 ID 입력
+- 앱 안에서 YouTube와 YouTube Music 공식 웹 화면 열기
+- 대시보드와 YouTube/YouTube Music을 한 화면에 두는 크기 조절 분할 보기
 - 앱 배경, 개인 사진, 앱 아이콘 순서와 표시, 화면 모드, 속도 단위, 알림 기준 사용자화
-- 참고 사진의 CarPlay 8:3 와이드 화면과 iPad 전체 화면 사이 비율 전환
+- iPad 전체 화면 기본 배치와 참고 사진의 CarPlay 8:3 와이드 화면 선택
+- iPad 화면 회전, 창 크기 조절, iPadOS 멀티태스킹에 맞춘 레이아웃
 - CarPlay 스타일 설정 카테고리, 배경화면 선택, 사용자 사진 추가
 
-첫 화면은 첨부한 CarPlay 화면의 8:3 와이드 비율을 기본으로 사용하고 앱은 가로 방향으로 실행됩니다. iPad에서는 검은 여백 안에 가로형 CarPlay 화면을 중앙 배치하며, 설정에서 iPad 전체 화면 모드로 바꿀 수 있습니다. 홈에는 다섯 열·두 행 앱 그리드, 왼쪽 최근 앱 도크, 시간·연결 표시, 배경화면, 페이지 전환을 둡니다. 앱 아이콘은 화면 폭과 높이에 맞춰 함께 크기가 조정됩니다. 앱 페이지 넘김, 아이콘 누름, 도크 선택, 앱 화면 전환에 SwiftUI 애니메이션을 넣었으며 iPad의 동작 줄이기 설정을 따릅니다. 설정 앱은 카테고리 목록, 별도의 배경화면 화면, 기본 배경과 사진 추가를 제공합니다. 운행 화면은 실제 ETS2 데이터가 없으면 연결 상태와 데이터 대기 상태만 보여주며, 임의 속도·목적지·경로를 생성하지 않습니다. 화면 비율은 [Apple CarPlay 디자인 가이드](https://developer.apple.com/design/human-interface-guidelines/carplay)의 일반적인 1920×720(8:3) 디스플레이를 기준으로 했습니다.
+앱은 가로와 세로 iPad 화면을 모두 채우며, 기본 비율은 iPad 전체 화면입니다. 설정에서 첨부한 사진에 맞춘 CarPlay 8:3 와이드 캔버스를 선택할 수 있습니다. 왼쪽 도크의 분할 보기 버튼을 누르면 대시보드와 YouTube 또는 YouTube Music을 나란히 표시하고 가운데 손잡이를 끌어 너비를 조절합니다. iPadOS의 앱 창 분할/크기 조절도 지원하도록 화면을 재배치합니다. 홈에는 화면 크기에 맞춰 열 수를 바꾸는 앱 그리드, 왼쪽 도크, 시간·연결 표시, 배경화면, 페이지 전환을 둡니다. 아이콘과 화면 전환에는 SwiftUI 동작을 넣고 iPad의 동작 줄이기 설정을 따릅니다. 지원 OS에서는 사이드 도크에 시스템 Liquid Glass를 사용합니다. 설정 앱은 카테고리 목록, 별도의 배경화면 화면, 기본 배경과 사진 추가를 제공합니다. 운행 화면은 실제 ETS2 데이터가 없으면 연결 상태와 데이터 대기 상태만 보여주며, 임의 속도·목적지·경로를 생성하지 않습니다. 와이드 선택은 [Apple CarPlay 디자인 가이드](https://developer.apple.com/design/human-interface-guidelines/carplay)의 8:3 디스플레이 비율을 참고합니다.
 
 설정 첫 화면은 CarPlay식 큰 터치 메뉴이며, 배경화면 선택은 별도 화면으로 열립니다. 세부 설정은 SwiftUI 기본 입력 요소를 사용합니다. 화면 재질과 전환은 보내주신 Liquid Glass 가이드와 [Apple Human Interface Guidelines의 Materials](https://developer.apple.com/design/human-interface-guidelines/materials), [Liquid Glass 적용 안내](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass)를 참고했습니다.
 
@@ -49,7 +51,9 @@ SCS SDK 1.16 헤더와 MIT 라이선스 전문은 `WindowsBridge/SCS_SDK`에 포
 
 두 방법의 단계별 안내, Apple 계정 서명, Developer Mode, Windows 브리지 설치는 [초보자 설치·연동 안내](INSTALLATION_GUIDE.md)에 정리했습니다. 프로젝트의 최소 배포 버전은 iPadOS 17입니다. Apple은 Xcode 27에서 iPadOS 27 이상 기기의 무선 페어링을 지원합니다. [Xcode 27 릴리스 노트](https://developer.apple.com/documentation/xcode-release-notes/xcode-27-release-notes) · [Device Hub 페어링 안내](https://developer.apple.com/documentation/xcode/managing-your-simulated-and-physical-devices-in-device-hub)
 
-현재 개발 환경에는 Xcode 앱과 iOS SDK가 설치되어 있지 않아 이 저장소의 iPad 앱은 실제 기기 빌드·서명·실행까지 검증하지 못했습니다.
+### 이번 화면 개편 빌드 확인
+
+Xcode 27.2에서 앱 **1.2.2 (빌드 5)**를 빌드하고 iPad Air 4세대(iPadOS 27.0.1)에 설치해 실행했습니다. iPad 전체 화면 배치, 앱 그리드, 미디어 화면, YouTube Music 보안 화면, 대시보드와 미디어 분할 화면을 실제 기기에서 확인했습니다. Windows PC의 ETS2 텔레메트리 브리지와 게임 플러그인은 별도 Windows 환경에서 연결 확인이 필요하므로, 이 문서만으로 ETS2 실시간 연동까지 검증됐다는 뜻은 아닙니다.
 
 ## 앱 업데이트
 
@@ -119,7 +123,7 @@ iPadOS는 실행 중인 앱이 자기 앱을 교체 설치하는 것을 허용�
 - **내비게이션:** SCS SDK가 주는 남은 거리, ETA, 제한 속도와 게임 월드 좌표를 표시합니다. SDK 좌표는 GPS 위도·경도가 아니고 도로 경로선도 제공하지 않으므로 지도 위에 가짜 도로나 회전 안내선을 그리지 않습니다.
 - **전화와 메시지:** FaceTime 오디오 발신은 iPad의 FaceTime 앱을 사용합니다. 문자는 iPadOS의 표준 작성 화면에서 수신자와 내용을 확인한 뒤 전송합니다. 수신 메시지함이나 통화 기록을 읽지 않습니다. 배송·벌금·통행료와 텔레메트리 경보는 앱 안의 알림 센터에 쌓이며, 알림 권한을 허용하면 iPad 배너와 잠금 화면에도 표시됩니다. [FaceTime iPad 안내](https://support.apple.com/guide/ipad/make-facetime-calls-ipad6b71e29e/27/ipados) · [Message UI 문서](https://developer.apple.com/documentation/messageui)
 - **음악:** Apple Music 탭은 MusicKit으로 카탈로그를 검색·재생하고, 가져온 파일 탭은 로컬 오디오를 재생합니다. MusicKit은 App ID에서 활성화하고 앱 권한을 허용해야 합니다. Apple Music 카탈로그 재생은 활성 구독을 요구합니다. 음성 중 음량 낮추기는 앱에 가져온 파일에 적용됩니다. [Apple MusicKit 문서](https://developer.apple.com/documentation/musickit) · [ApplicationMusicPlayer 문서](https://developer.apple.com/documentation/musickit/applicationmusicplayer)
-- **YouTube:** YouTube가 제공하는 임베드 플레이어를 사용합니다. URL 또는 ID를 입력해 재생하며 YouTube 컨트롤과 광고를 유지합니다. 플레이어 화면을 가리거나 오디오를 추출하지 않습니다. [YouTube 공식 임베드 플레이어 지침](https://developers.google.com/youtube/terms/required-minimum-functionality)
+- **YouTube / YouTube Music:** YouTube는 앱 안의 `WKWebView`에서 공식 사이트로 열립니다. YouTube Music은 WKWebView가 지원되지 않아 Apple의 `SFSafariViewController`를 앱 안에서 전체 화면으로 띄웁니다. 완료를 누르면 앱의 이전 화면으로 돌아갑니다. 이 Safari 화면은 분할 보기를 잠시 덮으며, 닫은 뒤 분할 화면을 계속 사용할 수 있습니다. Google은 앱이 관리하는 WKWebView에서 OAuth 로그인을 허용하지 않으므로 YouTube 사이트 로그인은 제한될 수 있습니다. 이 앱은 Google 비밀번호를 수집하지 않습니다. [Google OAuth 정책](https://developers.google.com/identity/protocols/oauth2/policies) · [YouTube Music 지원 브라우저](https://support.google.com/youtubemusic/answer/6313540?hl=en) · [Apple SFSafariViewController](https://developer.apple.com/documentation/safariservices/sfsafariviewcontroller)
 - **배경화면:** 앱에 포함된 여섯 가지 원본 색상 디자인과 사용자의 사진을 선택할 수 있습니다. Apple OS에서 제공하는 독점 시스템 배경 이미지 파일은 포함하지 않습니다.
 - **CarPlay:** Apple CarPlay 시스템 앱이나 자동차 디스플레이 연결 기능이 아닙니다. iPad 단독 실행용 CarPlay 스타일 인터페이스입니다.
 

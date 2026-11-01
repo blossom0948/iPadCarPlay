@@ -12,6 +12,7 @@ enum AppSection: String, CaseIterable, Codable, Identifiable, Hashable {
     case navigation
     case music
     case youtube
+    case youtubeMusic
     case phone
     case messages
     case voice
@@ -28,6 +29,7 @@ enum AppSection: String, CaseIterable, Codable, Identifiable, Hashable {
         case .navigation: "지도"
         case .music: "음악"
         case .youtube: "YouTube"
+        case .youtubeMusic: "YouTube Music"
         case .phone: "전화"
         case .messages: "알림 센터"
         case .voice: "음성 비서"
@@ -43,11 +45,12 @@ enum AppSection: String, CaseIterable, Codable, Identifiable, Hashable {
         case .music: "Music"
         case .navigation: "Maps"
         case .messages: "Messages"
-        case .dashboard: "Now Playing"
-        case .voice: "Podcasts"
-        case .youtube: "News"
-        case .stats: "Audiobooks"
-        case .controls: "Calendar"
+        case .dashboard: "Dashboard"
+        case .voice: "Voice"
+        case .youtube: "YouTube"
+        case .youtubeMusic: "YT Music"
+        case .stats: "Drive Stats"
+        case .controls: "Truck Control"
         case .settings: "Settings"
         case .apps: "Apps"
         }
@@ -60,6 +63,7 @@ enum AppSection: String, CaseIterable, Codable, Identifiable, Hashable {
         case .navigation: "map.fill"
         case .music: "music.note"
         case .youtube: "play.rectangle.fill"
+        case .youtubeMusic: "music.note"
         case .phone: "phone.fill"
         case .messages: "bubble.left.fill"
         case .voice: "mic.fill"
@@ -76,6 +80,7 @@ enum AppSection: String, CaseIterable, Codable, Identifiable, Hashable {
         case .navigation: Color(red: 0.28, green: 0.79, blue: 0.65)
         case .music: Color(red: 1.00, green: 0.40, blue: 0.52)
         case .youtube: Color(red: 1.00, green: 0.28, blue: 0.25)
+        case .youtubeMusic: Color(red: 0.91, green: 0.12, blue: 0.20)
         case .phone: Color(red: 0.26, green: 0.82, blue: 0.48)
         case .messages: Color(red: 0.28, green: 0.82, blue: 0.48)
         case .voice: Color(red: 0.58, green: 0.31, blue: 0.91)
@@ -86,7 +91,7 @@ enum AppSection: String, CaseIterable, Codable, Identifiable, Hashable {
     }
 
     static let launcherItems: [AppSection] = [
-        .phone, .music, .navigation, .messages, .dashboard, .voice, .youtube, .stats, .controls, .settings
+        .phone, .music, .navigation, .messages, .dashboard, .voice, .youtube, .youtubeMusic, .stats, .controls, .settings
     ]
 }
 

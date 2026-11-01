@@ -13,7 +13,7 @@ final class AppLayoutStore: ObservableObject {
     init() {
         let defaults = AppSection.launcherItems
         let previousDefaultOrder: [AppSection] = [
-            .dashboard, .navigation, .music, .youtube, .phone, .messages, .voice, .stats, .controls, .settings
+            .phone, .music, .navigation, .messages, .dashboard, .voice, .youtube, .stats, .controls, .settings
         ]
         if let data = UserDefaults.standard.data(forKey: orderKey),
            let rawOrder = try? JSONDecoder().decode([String].self, from: data) {

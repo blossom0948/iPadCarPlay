@@ -7,15 +7,17 @@ import UIKit
 struct AppsScreen: View {
     @ObservedObject var layoutStore: AppLayoutStore
     let onSelect: (AppSection) -> Void
+    var preferredColumns = 6
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selectedPage = 0
+    @State private var iconsVisible = false
 
     var body: some View {
         GeometryReader { geometry in
-            let columnCount = 5
+            let columnCount = geometry.size.width < 560 ? 3 : (geometry.size.width < 820 ? 4 : preferredColumns)
             let pageSize = columnCount * 2
-            let iconSize = min(geometry.size.width * 0.109, geometry.size.height * 0.25)
-            let rowWidth = geometry.size.width * 0.954
+            let iconSize = min(150, geometry.size.width / CGFloat(columnCount) * 0.55, geometry.size.height * 0.23)
+            let rowWidth = geometry.size.width * 0.97
             let rowCenterX = geometry.size.width * 0.495
             let sections = layoutStore.visibleSections
             let pages = stride(from: 0, to: sections.count, by: pageSize).map { start in
@@ -36,14 +38,14 @@ struct AppsScreen: View {
                             let page = pages[pageIndex]
                             ZStack {
                                 if !page.prefix(columnCount).isEmpty {
-                                    appGridRow(Array(page.prefix(columnCount)), iconSize: iconSize)
+                                    appGridRow(Array(page.prefix(columnCount)), iconSize: iconSize, columnCount: columnCount)
                                         .frame(width: rowWidth)
                                         .position(x: rowCenterX, y: geometry.size.height * 0.297)
                                 }
 
                                 let secondRow = Array(page.dropFirst(columnCount))
                                 if !secondRow.isEmpty {
-                                    appGridRow(secondRow, iconSize: iconSize)
+                                    appGridRow(secondRow, iconSize: iconSize, columnCount: columnCount)
                                         .frame(width: rowWidth)
                                         .position(x: rowCenterX, y: geometry.size.height * 0.687)
                                 }
@@ -78,26 +80,27 @@ struct AppsScreen: View {
                             .accessibilityElement(children: .ignore)
                             .accessibilityLabel("앱 페이지 \(selectedPage + 1), 총 \(pages.count)페이지")
                         } else {
-                            HStack(spacing: max(9, geometry.size.width * 0.014)) {
-                                Circle().fill(Color.white).frame(width: max(7, iconSize * 0.045), height: max(7, iconSize * 0.045))
-                                Circle().fill(Color.white.opacity(0.58)).frame(width: max(7, iconSize * 0.045), height: max(7, iconSize * 0.045))
-                            }
-                            .padding(.bottom, geometry.size.height * 0.055)
-                            .accessibilityHidden(true)
+                            Capsule()
+                                .fill(Color.white.opacity(0.72))
+                                .frame(width: max(20, iconSize * 0.19), height: max(5, iconSize * 0.06))
+                                .padding(.bottom, geometry.size.height * 0.055)
+                                .accessibilityLabel("앱 페이지 1")
                         }
                     }
                     .onChange(of: sections) { _, _ in
                         selectedPage = 0
                     }
+                    .onAppear { iconsVisible = true }
+                    .onDisappear { iconsVisible = false }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
-    private func appGridRow(_ sections: [AppSection], iconSize: CGFloat) -> some View {
-        let leadingEmptySlots = max(0, (5 - sections.count) / 2)
-        let trailingEmptySlots = max(0, 5 - sections.count - leadingEmptySlots)
+    private func appGridRow(_ sections: [AppSection], iconSize: CGFloat, columnCount: Int) -> some View {
+        let leadingEmptySlots = max(0, (columnCount - sections.count) / 2)
+        let trailingEmptySlots = max(0, columnCount - sections.count - leadingEmptySlots)
 
         return HStack(spacing: 0) {
             ForEach(0..<leadingEmptySlots, id: \.self) { _ in
@@ -105,7 +108,7 @@ struct AppsScreen: View {
                     .accessibilityHidden(true)
             }
 
-            ForEach(sections) { section in
+            ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
                 Button { onSelect(section) } label: {
                     VStack(spacing: max(5, iconSize * 0.085)) {
                         AppIconTile(section: section)
@@ -122,6 +125,12 @@ struct AppsScreen: View {
                     }
                     .frame(maxWidth: .infinity)
                     .contentShape(Rectangle())
+                    .opacity(iconsVisible ? 1 : 0)
+                    .scaleEffect(iconsVisible || reduceMotion ? 1 : 0.90)
+                    .animation(
+                        reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.76).delay(Double(index) * 0.035),
+                        value: iconsVisible
+                    )
                 }
                 .buttonStyle(CarPlayPressButtonStyle(pressedScale: 0.93))
             }
@@ -165,16 +174,35 @@ struct NavigationScreen: View {
                     .background(Color.white.opacity(0.10), in: Capsule())
             }
 
-            HStack(spacing: 15) {
-                NavigationDataCard(snapshot: bridge.snapshot, gameState: bridge.gameState)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                VStack(spacing: 14) {
-                    TruckTelemetryCard(snapshot: bridge.snapshot, speedUnit: speedUnit)
-                        .frame(maxHeight: .infinity)
-                    WorldPositionCard(position: bridge.snapshot?.worldPosition)
-                        .frame(maxHeight: .infinity)
+            GeometryReader { geometry in
+                if geometry.size.width < 720 {
+                    ScrollView(.vertical) {
+                        VStack(spacing: 12) {
+                            NavigationDataCard(snapshot: bridge.snapshot, gameState: bridge.gameState)
+                                .frame(minHeight: max(250, geometry.size.height * 0.48))
+                            HStack(spacing: 12) {
+                                TruckTelemetryCard(snapshot: bridge.snapshot, speedUnit: speedUnit)
+                                    .frame(minHeight: 210)
+                                WorldPositionCard(position: bridge.snapshot?.worldPosition)
+                                    .frame(minHeight: 210)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .scrollIndicators(.hidden)
+                } else {
+                    HStack(spacing: 15) {
+                        NavigationDataCard(snapshot: bridge.snapshot, gameState: bridge.gameState)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        VStack(spacing: 14) {
+                            TruckTelemetryCard(snapshot: bridge.snapshot, speedUnit: speedUnit)
+                                .frame(maxHeight: .infinity)
+                            WorldPositionCard(position: bridge.snapshot?.worldPosition)
+                                .frame(maxHeight: .infinity)
+                        }
+                        .frame(width: min(300, geometry.size.width * 0.32))
+                    }
                 }
-                .frame(width: 300)
             }
 
             HStack(spacing: 12) {
