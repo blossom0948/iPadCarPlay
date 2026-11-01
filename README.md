@@ -57,7 +57,7 @@ Apple의 현재 Xcode 호환 표에서 Xcode 27은 iPadOS 27 기기를 지원합
 
 앱은 실행할 때 GitHub Releases API를 직접 확인하고, 새 버전 번호와 변경 내용을 **설정 → 일반 → 소프트웨어 업데이트**에 표시합니다. 브라우저나 웹 페이지를 열지 않습니다. 공개 릴리스가 아직 없으면 앱에서 그렇게 표시합니다.
 
-iPadOS는 실행 중인 앱이 자기 앱을 교체 설치하는 것을 허용하지 않습니다. 현재처럼 Xcode로 설치한 개발 빌드는 새 코드를 받을 때 Xcode에서 다시 실행해야 합니다. 이 반복을 없애려면 App Store나 TestFlight로 배포해야 합니다. App Store 앱은 기본적으로 자동 업데이트되며, 설정은 **설정 → 앱 → App Store → 앱 업데이트**에서 확인할 수 있습니다. TestFlight도 앱별 **Automatic Updates**를 켜면 새 베타 빌드를 자동 설치합니다. 정식 이용을 위해서는 App Store 배포가 필요합니다. 두 방식 모두 Apple Developer Program 가입과 App Store Connect 등록이 필요하며, 정식 배포는 심사도 통과해야 합니다. 이 계정과 등록은 아직 설정되지 않았습니다. [Apple의 배포 방법](https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases) · [iPad 자동 업데이트 설정](https://support.apple.com/en-us/102629) · [TestFlight 자동 업데이트](https://testflight.apple.com/)
+iPadOS는 실행 중인 앱이 자기 앱을 교체 설치하는 것을 허용하지 않습니다. 현재처럼 Xcode로 설치한 개발 빌드는 새 코드를 받을 때 Xcode에서 다시 실행해야 합니다. 이 반복을 없애려면 App Store나 TestFlight로 배포해야 합니다. App Store 앱은 기본적으로 자동 업데이트되며, 설정은 **설정 → 앱 → App Store → 앱 업데이트**에서 확인할 수 있습니다. TestFlight는 앱 상세 화면의 **App Information → Automatic Updates**를 켜면 새 베타 빌드를 자동 설치합니다. 정식 이용을 위해서는 App Store 배포가 필요합니다. 두 방식 모두 Apple Developer Program 가입과 App Store Connect 등록이 필요하며, 정식 배포는 심사도 통과해야 합니다. 이 계정과 등록은 아직 설정되지 않았습니다. [Apple의 배포 방법](https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases) · [iPad 자동 업데이트 설정](https://support.apple.com/en-us/102629) · [TestFlight 자동 업데이트](https://testflight.apple.com/)
 
 ## Windows PC와 ETS2 연결
 
