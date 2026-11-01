@@ -30,32 +30,48 @@ struct ContentView: View {
             let screenHeight = isCarPlayAspect && geometry.size.width > geometry.size.height
                 ? min(geometry.size.height, geometry.size.width / referenceAspect)
                 : geometry.size.height
-            let railWidth = min(320, max(72, geometry.size.width * 0.125))
+            let railWidth = min(320, max(72, geometry.size.width * 0.085))
+            let useReferenceHome = isCarPlayAspect
+                && geometry.size.width > geometry.size.height
+                && model.selection == .apps
+                && showStatusBar
+                && appearance == "dark"
+                && selectedWallpaperID == WallpaperPreset.aurora.rawValue
+                && layoutStore.visibleSections == AppSection.launcherItems
 
             ZStack {
                 Color.black.ignoresSafeArea()
 
-                ZStack {
-                    WallpaperCanvas(preset: activePreset, image: selectedWallpaperID == "custom" ? wallpaperStore.customImage : nil)
-                        .overlay(Color.black.opacity(model.selection == .apps ? 0.08 : 0.42))
-
-                    HStack(spacing: 0) {
-                        SideRail(bridge: model.bridge, selection: model.selection, showStatusBar: showStatusBar, railWidth: railWidth, railHeight: screenHeight) { section in
+                Group {
+                    if useReferenceHome {
+                        ReferenceCarPlayHome { section in
                             model.select(section, reduceMotion: reduceMotion)
                         }
+                        .transition(.opacity)
+                    } else {
+                        ZStack {
+                            WallpaperCanvas(preset: activePreset, image: selectedWallpaperID == "custom" ? wallpaperStore.customImage : nil)
+                                .overlay(Color.black.opacity(model.selection == .apps ? 0.08 : 0.42))
 
-                        activeScreen
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .id(model.selection)
-                            .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.97)),
-                                removal: .opacity
-                            ))
+                            HStack(spacing: 0) {
+                                SideRail(bridge: model.bridge, selection: model.selection, showStatusBar: showStatusBar, railWidth: railWidth, railHeight: screenHeight) { section in
+                                    model.select(section, reduceMotion: reduceMotion)
+                                }
+
+                                activeScreen
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    .id(model.selection)
+                                    .transition(.asymmetric(
+                                        insertion: .opacity.combined(with: .scale(scale: 0.97)),
+                                        removal: .opacity
+                                    ))
+                            }
+                        }
                     }
-                    .frame(width: geometry.size.width, height: screenHeight)
+                        .transition(.opacity)
                 }
                 .frame(width: geometry.size.width, height: screenHeight)
-                .clipShape(RoundedRectangle(cornerRadius: isCarPlayAspect ? min(32, screenHeight * 0.05) : 0, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: isCarPlayAspect ? min(40, screenHeight * 0.065) : 0, style: .continuous))
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
             .onAppear {
@@ -115,6 +131,77 @@ struct ContentView: View {
                 speedUnit: $speedUnit,
                 screenAspect: $screenAspect
             )
+        }
+    }
+}
+
+private struct ReferenceCarPlayHome: View {
+    let onSelect: (AppSection) -> Void
+
+    private let appColumnCenters: [CGFloat] = [0.188, 0.362, 0.538, 0.709, 0.882]
+    private let dockSections: [AppSection] = [.navigation, .music, .phone]
+    private let dockCentersY: [CGFloat] = [0.337, 0.503, 0.666]
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .topLeading) {
+                Image("CarPlayHomeReference")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .clipped()
+
+                ForEach(AppSection.launcherItems.indices, id: \.self) { index in
+                    let section = AppSection.launcherItems[index]
+                    let column = index % 5
+                    let row = index / 5
+                    Button {
+                        onSelect(section)
+                    } label: {
+                        Color.clear
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .contentShape(Rectangle())
+                    }
+                    .frame(width: geometry.size.width * 0.155, height: geometry.size.height * 0.37)
+                    .position(
+                        x: geometry.size.width * appColumnCenters[column],
+                        y: geometry.size.height * (row == 0 ? 0.29 : 0.69)
+                    )
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(section.title)
+                }
+
+                ForEach(dockSections.indices, id: \.self) { index in
+                    Button {
+                        onSelect(dockSections[index])
+                    } label: {
+                        Color.clear
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .contentShape(Rectangle())
+                    }
+                    .frame(width: geometry.size.width * 0.082, height: geometry.size.height * 0.18)
+                    .position(
+                        x: geometry.size.width * 0.041,
+                        y: geometry.size.height * dockCentersY[index]
+                    )
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(dockSections[index].title)
+                }
+
+                Button {
+                    onSelect(.apps)
+                } label: {
+                    Color.clear
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .contentShape(Rectangle())
+                }
+                .frame(width: geometry.size.width * 0.10, height: geometry.size.height * 0.17)
+                .position(x: geometry.size.width * 0.041, y: geometry.size.height * 0.92)
+                .buttonStyle(.plain)
+                .accessibilityLabel("홈 화면")
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .clipped()
         }
     }
 }
@@ -184,23 +271,15 @@ private struct SideRail: View {
         }
         .frame(width: railWidth)
         .frame(maxHeight: .infinity)
-        .background {
-            if #available(iOS 26.0, *) {
-                Rectangle()
-                    .glassEffect(.regular, in: Rectangle())
-                    .overlay(Color.black.opacity(0.24))
-            } else {
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .overlay(Color.black.opacity(0.26))
-            }
-        }
+        .background(Color.black.opacity(0.22))
         .overlay(alignment: .trailing) {
             Rectangle()
                 .fill(Color.white.opacity(0.10))
                 .frame(width: 1)
         }
     }
+
+    private var dockIconSize: CGFloat { railWidth * 0.55 }
 
     private var statusColor: Color {
         guard bridge.isConnected else { return .white.opacity(0.56) }
@@ -212,17 +291,13 @@ private struct SideRail: View {
         }
     }
 
-    private var dockIconSize: CGFloat { railWidth * 0.38 }
-
     private func dockButton(_ item: AppSection) -> some View {
         Button {
             onSelect(item)
         } label: {
             Group {
                 if item == .apps {
-                    Image(systemName: "rectangle.grid.2x2.fill")
-                        .font(.system(size: dockIconSize * 0.62, weight: .semibold))
-                        .foregroundStyle(.white)
+                    LauncherMenuGlyph(side: dockIconSize)
                 } else {
                     MiniDockIcon(section: item)
                         .frame(width: dockIconSize, height: dockIconSize)
@@ -237,41 +312,32 @@ private struct SideRail: View {
     }
 }
 
+private struct LauncherMenuGlyph: View {
+    let side: CGFloat
+
+    var body: some View {
+        HStack(spacing: side * 0.07) {
+            RoundedRectangle(cornerRadius: side * 0.035, style: .continuous)
+                .fill(.white)
+                .frame(width: side * 0.18, height: side * 0.48)
+            VStack(spacing: side * 0.08) {
+                RoundedRectangle(cornerRadius: side * 0.035, style: .continuous)
+                    .fill(.white)
+                    .frame(width: side * 0.50, height: side * 0.18)
+                RoundedRectangle(cornerRadius: side * 0.035, style: .continuous)
+                    .fill(.white)
+                    .frame(width: side * 0.50, height: side * 0.18)
+            }
+        }
+        .frame(width: side * 0.80, height: side * 0.55)
+    }
+}
+
 private struct MiniDockIcon: View {
     let section: AppSection
 
     var body: some View {
-        GeometryReader { geometry in
-            let side = min(geometry.size.width, geometry.size.height)
-            RoundedRectangle(cornerRadius: side * 0.20, style: .continuous)
-                .fill(LinearGradient(
-                    colors: [section == .navigation ? Color(red: 0.32, green: 0.84, blue: 0.72) : section.color, section.color.opacity(0.78)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
-                .overlay {
-                    if section == .navigation {
-                        ZStack {
-                            Image(systemName: "map.fill")
-                                .font(.system(size: side * 0.62, weight: .regular))
-                                .foregroundStyle(.white)
-                            Image(systemName: "location.fill")
-                                .font(.system(size: side * 0.24, weight: .semibold))
-                                .foregroundStyle(Color(red: 0.08, green: 0.43, blue: 0.96))
-                                .offset(x: side * 0.05, y: side * 0.05)
-                        }
-                    } else {
-                        Image(systemName: section.symbol)
-                            .font(.system(size: side * 0.62, weight: .semibold))
-                            .foregroundStyle(.white)
-                    }
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: side * 0.20, style: .continuous)
-                        .stroke(Color.white.opacity(0.24), lineWidth: max(0.8, side * 0.015))
-                }
-                .shadow(color: .black.opacity(0.18), radius: side * 0.05, y: side * 0.02)
-        }
+        AppIconTile(section: section)
     }
 }
 
@@ -361,27 +427,29 @@ private struct CarPlayWallpaperArt: View {
                 )
                 CarPlayWallpaperWave(layer: .blueSweep)
                     .fill(LinearGradient(
-                        colors: [Color(red: 0.09, green: 0.35, blue: 0.62), Color(red: 0.13, green: 0.61, blue: 0.68)],
+                        colors: [Color(red: 0.10, green: 0.34, blue: 0.56), Color(red: 0.14, green: 0.55, blue: 0.70)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ))
-                    .opacity(0.72)
+                    .opacity(0.58)
+                    .blur(radius: geometry.size.width * 0.006)
                 CarPlayWallpaperWave(layer: .goldSweep)
                     .fill(LinearGradient(
-                        colors: [Color(red: 0.80, green: 0.65, blue: 0.31), Color(red: 0.97, green: 0.81, blue: 0.46), Color(red: 0.90, green: 0.49, blue: 0.28)],
+                        colors: [Color(red: 0.82, green: 0.66, blue: 0.34), Color(red: 0.97, green: 0.80, blue: 0.48), Color(red: 0.88, green: 0.55, blue: 0.37)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ))
-                    .opacity(0.74)
+                    .opacity(0.60)
+                    .blur(radius: geometry.size.width * 0.007)
                 CarPlayWallpaperWave(layer: .purpleTop)
                     .fill(LinearGradient(
-                        colors: [Color(red: 0.56, green: 0.52, blue: 0.78), Color(red: 0.22, green: 0.25, blue: 0.55)],
+                        colors: [Color(red: 0.57, green: 0.54, blue: 0.79), Color(red: 0.28, green: 0.32, blue: 0.61)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ))
-                    .opacity(0.82)
+                    .opacity(0.68)
                 CarPlayWallpaperWave(layer: .deepBlueCorner)
-                    .fill(Color(red: 0.19, green: 0.23, blue: 0.52).opacity(0.56))
+                    .fill(Color(red: 0.15, green: 0.25, blue: 0.48).opacity(0.44))
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
             .clipped()
@@ -406,34 +474,33 @@ private struct CarPlayWallpaperWave: Shape {
 
         switch layer {
         case .blueSweep:
-            path.move(to: CGPoint(x: 0, y: h * 0.09))
-            path.addCurve(to: CGPoint(x: w * 0.27, y: h * 0.45), control1: CGPoint(x: w * 0.15, y: h * 0.18), control2: CGPoint(x: w * 0.13, y: h * 0.35))
-            path.addCurve(to: CGPoint(x: w * 0.61, y: h * 0.65), control1: CGPoint(x: w * 0.39, y: h * 0.53), control2: CGPoint(x: w * 0.50, y: h * 0.51))
-            path.addCurve(to: CGPoint(x: w, y: h * 0.78), control1: CGPoint(x: w * 0.73, y: h * 0.74), control2: CGPoint(x: w * 0.83, y: h * 0.88))
+            path.move(to: CGPoint(x: 0, y: h * 0.23))
+            path.addCurve(to: CGPoint(x: w * 0.28, y: h * 0.54), control1: CGPoint(x: w * 0.13, y: h * 0.25), control2: CGPoint(x: w * 0.15, y: h * 0.46))
+            path.addCurve(to: CGPoint(x: w * 0.61, y: h * 0.68), control1: CGPoint(x: w * 0.40, y: h * 0.61), control2: CGPoint(x: w * 0.50, y: h * 0.59))
+            path.addCurve(to: CGPoint(x: w, y: h * 0.76), control1: CGPoint(x: w * 0.75, y: h * 0.72), control2: CGPoint(x: w * 0.88, y: h * 0.83))
             path.addLine(to: CGPoint(x: w, y: h))
             path.addLine(to: CGPoint(x: 0, y: h))
             path.closeSubpath()
 
         case .goldSweep:
-            path.move(to: CGPoint(x: 0, y: h * 0.38))
-            path.addCurve(to: CGPoint(x: w * 0.31, y: h * 0.40), control1: CGPoint(x: w * 0.11, y: h * 0.23), control2: CGPoint(x: w * 0.21, y: h * 0.29))
-            path.addCurve(to: CGPoint(x: w * 0.61, y: h * 0.73), control1: CGPoint(x: w * 0.43, y: h * 0.53), control2: CGPoint(x: w * 0.47, y: h * 0.68))
-            path.addCurve(to: CGPoint(x: w, y: h * 0.56), control1: CGPoint(x: w * 0.74, y: h * 0.78), control2: CGPoint(x: w * 0.86, y: h * 0.69))
-            path.addLine(to: CGPoint(x: w, y: h * 0.81))
-            path.addCurve(to: CGPoint(x: w * 0.51, y: h * 0.81), control1: CGPoint(x: w * 0.82, y: h * 0.93), control2: CGPoint(x: w * 0.65, y: h * 0.91))
-            path.addCurve(to: CGPoint(x: 0, y: h * 0.62), control1: CGPoint(x: w * 0.36, y: h * 0.69), control2: CGPoint(x: w * 0.16, y: h * 0.51))
+            path.move(to: CGPoint(x: w * 0.16, y: 0))
+            path.addCurve(to: CGPoint(x: w * 0.48, y: h * 0.40), control1: CGPoint(x: w * 0.31, y: h * 0.06), control2: CGPoint(x: w * 0.33, y: h * 0.27))
+            path.addCurve(to: CGPoint(x: w, y: h * 0.42), control1: CGPoint(x: w * 0.66, y: h * 0.59), control2: CGPoint(x: w * 0.82, y: h * 0.48))
+            path.addLine(to: CGPoint(x: w, y: h * 0.63))
+            path.addCurve(to: CGPoint(x: w * 0.54, y: h * 0.58), control1: CGPoint(x: w * 0.84, y: h * 0.66), control2: CGPoint(x: w * 0.70, y: h * 0.65))
+            path.addCurve(to: CGPoint(x: 0, y: h * 0.47), control1: CGPoint(x: w * 0.37, y: h * 0.58), control2: CGPoint(x: w * 0.16, y: h * 0.44))
             path.closeSubpath()
 
         case .purpleTop:
-            path.move(to: CGPoint(x: w * 0.63, y: 0))
-            path.addCurve(to: CGPoint(x: w * 0.85, y: h * 0.23), control1: CGPoint(x: w * 0.75, y: h * 0.06), control2: CGPoint(x: w * 0.77, y: h * 0.19))
-            path.addCurve(to: CGPoint(x: w, y: h * 0.20), control1: CGPoint(x: w * 0.91, y: h * 0.27), control2: CGPoint(x: w * 0.96, y: h * 0.24))
+            path.move(to: CGPoint(x: w * 0.70, y: 0))
+            path.addCurve(to: CGPoint(x: w * 0.88, y: h * 0.22), control1: CGPoint(x: w * 0.77, y: h * 0.03), control2: CGPoint(x: w * 0.78, y: h * 0.18))
+            path.addCurve(to: CGPoint(x: w, y: h * 0.17), control1: CGPoint(x: w * 0.94, y: h * 0.26), control2: CGPoint(x: w * 0.97, y: h * 0.21))
             path.addLine(to: CGPoint(x: w, y: 0))
             path.closeSubpath()
 
         case .deepBlueCorner:
-            path.move(to: CGPoint(x: w * 0.71, y: h))
-            path.addCurve(to: CGPoint(x: w, y: h * 0.84), control1: CGPoint(x: w * 0.80, y: h * 0.87), control2: CGPoint(x: w * 0.92, y: h * 0.82))
+            path.move(to: CGPoint(x: w * 0.66, y: h))
+            path.addCurve(to: CGPoint(x: w, y: h * 0.82), control1: CGPoint(x: w * 0.81, y: h * 0.88), control2: CGPoint(x: w * 0.93, y: h * 0.83))
             path.addLine(to: CGPoint(x: w, y: h))
             path.closeSubpath()
         }
@@ -461,46 +528,28 @@ struct AppIconTile: View {
                     .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 }
                 .overlay {
-                    Group {
-                        if section == .navigation {
-                            ZStack {
-                                Image(systemName: "map.fill")
-                                    .font(.system(size: side * 0.48, weight: .regular))
-                                    .foregroundStyle(.white)
-                                Image(systemName: "location.north.circle.fill")
-                                    .font(.system(size: side * 0.25, weight: .semibold))
-                                    .foregroundStyle(Color(red: 0.08, green: 0.43, blue: 0.96))
-                                    .offset(x: side * 0.06, y: side * 0.05)
-                            }
-                        } else {
-                            Image(systemName: section.symbol)
-                                .font(.system(size: side * symbolScale, weight: .medium))
-                                .foregroundStyle(section == .settings ? Color(white: 0.36) : .white)
-                        }
-                    }
-                    .shadow(color: .black.opacity(section == .settings ? 0 : 0.16), radius: 3, y: 1)
+                    CarPlayIconArtwork(section: section, side: side)
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                        .stroke(section == .dashboard || section == .youtube || section == .controls
+                                ? Color.black.opacity(0.10) : Color.white.opacity(0.22), lineWidth: 1)
                 }
         }
     }
 
     private var iconBackground: LinearGradient {
-        if section == .settings {
+        if section == .settings || section == .dashboard || section == .youtube || section == .controls {
             return LinearGradient(
-                colors: [Color(white: 0.96), Color(white: 0.72)],
+                colors: section == .settings
+                    ? [Color(white: 0.96), Color(white: 0.72)]
+                    : [Color.white, Color(white: 0.94)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
         }
         if section == .navigation {
-            return LinearGradient(
-                colors: [Color(red: 0.23, green: 0.86, blue: 0.68), Color(red: 0.20, green: 0.58, blue: 0.91)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            return LinearGradient(colors: [Color.white, Color(white: 0.92)], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
         return LinearGradient(
             colors: [section.color, section.color.opacity(0.84)],
@@ -509,18 +558,142 @@ struct AppIconTile: View {
         )
     }
 
-    private var symbolScale: CGFloat {
-        switch section {
-        case .phone, .music, .messages: 0.60
-        case .dashboard: 0.72
-        case .navigation: 0.40
-        case .youtube: 0.68
-        case .voice: 0.58
-        case .stats: 0.68
-        case .controls: 0.62
-        case .settings: 0.64
-        case .apps: 0.40
+}
+
+private struct CarPlayIconArtwork: View {
+    let section: AppSection
+    let side: CGFloat
+
+    var body: some View {
+        Group {
+            switch section {
+            case .navigation:
+                MapsArtwork(side: side)
+            case .dashboard:
+                NowPlayingWaveform(side: side)
+            case .voice:
+                Image(systemName: "dot.radiowaves.left.and.right")
+                    .font(.system(size: side * 0.48, weight: .medium))
+                    .foregroundStyle(.white)
+            case .youtube:
+                Text("N")
+                    .font(.system(size: side * 0.62, weight: .black, design: .default))
+                    .foregroundStyle(LinearGradient(colors: [.red, Color(red: 0.82, green: 0.06, blue: 0.15)], startPoint: .top, endPoint: .bottom))
+            case .stats:
+                Image(systemName: "book.fill")
+                    .font(.system(size: side * 0.64, weight: .medium))
+                    .foregroundStyle(.white)
+            case .controls:
+                VStack(spacing: 0) {
+                    Text("MON")
+                        .font(.system(size: side * 0.18, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.red)
+                    Text("6")
+                        .font(.system(size: side * 0.54, weight: .medium, design: .rounded))
+                        .foregroundStyle(Color(white: 0.18))
+                        .offset(y: -side * 0.025)
+                }
+            case .settings:
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: side * 0.64, weight: .medium))
+                    .foregroundStyle(LinearGradient(colors: [Color(white: 0.55), Color(white: 0.34)], startPoint: .top, endPoint: .bottom))
+            case .music:
+                DoubleMusicNotes()
+                .foregroundStyle(.white)
+            case .phone, .messages:
+                Image(systemName: section.symbol)
+                    .font(.system(size: side * (section == .phone ? 0.56 : 0.57), weight: .semibold))
+                    .foregroundStyle(.white)
+            case .apps:
+                Image(systemName: "rectangle.grid.2x2.fill")
+                    .font(.system(size: side * 0.42, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
         }
+        .shadow(color: .black.opacity(section == .settings || section == .youtube || section == .controls ? 0 : 0.12), radius: 2, y: 1)
+    }
+}
+
+private struct MapsArtwork: View {
+    let side: CGFloat
+
+    var body: some View {
+        ZStack {
+            HStack(spacing: 0) {
+                LinearGradient(colors: [Color(red: 0.95, green: 0.80, blue: 0.43), Color(red: 0.85, green: 0.88, blue: 0.67)], startPoint: .top, endPoint: .bottom)
+                LinearGradient(colors: [Color(red: 0.43, green: 0.79, blue: 0.56), Color(red: 0.31, green: 0.68, blue: 0.56)], startPoint: .top, endPoint: .bottom)
+                LinearGradient(colors: [Color(red: 0.45, green: 0.80, blue: 0.92), Color(red: 0.30, green: 0.59, blue: 0.86)], startPoint: .top, endPoint: .bottom)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: side * 0.18, style: .continuous))
+            MapRoad()
+                .stroke(Color.white.opacity(0.88), style: StrokeStyle(lineWidth: side * 0.026, lineCap: .round, lineJoin: .round))
+                .padding(side * 0.08)
+            Image(systemName: "location.north.circle.fill")
+                .font(.system(size: side * 0.34, weight: .bold))
+                .foregroundStyle(Color(red: 0.10, green: 0.42, blue: 0.96))
+                .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
+                .offset(x: -side * 0.13, y: side * 0.13)
+        }
+        .frame(width: side, height: side)
+    }
+}
+
+private struct MapRoad: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.width * 0.15, y: rect.height * 0.12))
+        path.addCurve(
+            to: CGPoint(x: rect.width * 0.82, y: rect.height * 0.82),
+            control1: CGPoint(x: rect.width * 0.58, y: rect.height * 0.20),
+            control2: CGPoint(x: rect.width * 0.42, y: rect.height * 0.76)
+        )
+        path.move(to: CGPoint(x: rect.width * 0.69, y: rect.height * 0.02))
+        path.addCurve(
+            to: CGPoint(x: rect.width * 0.18, y: rect.height * 0.94),
+            control1: CGPoint(x: rect.width * 0.61, y: rect.height * 0.38),
+            control2: CGPoint(x: rect.width * 0.26, y: rect.height * 0.50)
+        )
+        path.move(to: CGPoint(x: rect.width * 0.02, y: rect.height * 0.68))
+        path.addCurve(
+            to: CGPoint(x: rect.width * 0.91, y: rect.height * 0.64),
+            control1: CGPoint(x: rect.width * 0.31, y: rect.height * 0.50),
+            control2: CGPoint(x: rect.width * 0.56, y: rect.height * 0.78)
+        )
+        return path
+    }
+}
+
+private struct NowPlayingWaveform: View {
+    let side: CGFloat
+    private let heights: [CGFloat] = [0.24, 0.42, 0.58, 0.38, 0.68, 0.48, 0.62, 0.30]
+
+    var body: some View {
+        HStack(alignment: .center, spacing: side * 0.025) {
+            ForEach(heights.indices, id: \.self) { index in
+                Capsule()
+                    .fill(LinearGradient(colors: [.red, .pink, .purple], startPoint: .top, endPoint: .bottom))
+                    .frame(width: side * 0.04, height: side * heights[index])
+            }
+        }
+    }
+}
+
+private struct DoubleMusicNotes: Shape {
+    func path(in rect: CGRect) -> Path {
+        let w = rect.width
+        let h = rect.height
+        var path = Path()
+
+        path.addEllipse(in: CGRect(x: w * 0.12, y: h * 0.61, width: w * 0.22, height: h * 0.15))
+        path.addEllipse(in: CGRect(x: w * 0.57, y: h * 0.50, width: w * 0.22, height: h * 0.15))
+        path.addRoundedRect(in: CGRect(x: w * 0.29, y: h * 0.20, width: w * 0.08, height: h * 0.48), cornerSize: CGSize(width: w * 0.04, height: w * 0.04))
+        path.addRoundedRect(in: CGRect(x: w * 0.74, y: h * 0.09, width: w * 0.08, height: h * 0.48), cornerSize: CGSize(width: w * 0.04, height: w * 0.04))
+        path.move(to: CGPoint(x: w * 0.33, y: h * 0.20))
+        path.addLine(to: CGPoint(x: w * 0.78, y: h * 0.09))
+        path.addLine(to: CGPoint(x: w * 0.78, y: h * 0.21))
+        path.addLine(to: CGPoint(x: w * 0.33, y: h * 0.33))
+        path.closeSubpath()
+        return path
     }
 }
 

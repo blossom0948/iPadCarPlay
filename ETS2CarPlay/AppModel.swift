@@ -39,9 +39,17 @@ enum AppSection: String, CaseIterable, Codable, Identifiable, Hashable {
 
     var launcherTitle: String {
         switch self {
-        case .dashboard: "재생 중"
-        case .messages: "메시지"
-        default: title
+        case .phone: "Phone"
+        case .music: "Music"
+        case .navigation: "Maps"
+        case .messages: "Messages"
+        case .dashboard: "Now Playing"
+        case .voice: "Podcasts"
+        case .youtube: "News"
+        case .stats: "Audiobooks"
+        case .controls: "Calendar"
+        case .settings: "Settings"
+        case .apps: "Apps"
         }
     }
 

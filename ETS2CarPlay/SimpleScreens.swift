@@ -15,6 +15,8 @@ struct AppsScreen: View {
             let columnCount = 5
             let pageSize = columnCount * 2
             let iconSize = min(geometry.size.width * 0.109, geometry.size.height * 0.25)
+            let rowWidth = geometry.size.width * 0.954
+            let rowCenterX = geometry.size.width * 0.495
             let sections = layoutStore.visibleSections
             let pages = stride(from: 0, to: sections.count, by: pageSize).map { start in
                 Array(sections[start..<min(start + pageSize, sections.count)])
@@ -35,13 +37,15 @@ struct AppsScreen: View {
                             ZStack {
                                 if !page.prefix(columnCount).isEmpty {
                                     appGridRow(Array(page.prefix(columnCount)), iconSize: iconSize)
-                                        .position(x: geometry.size.width * 0.466, y: geometry.size.height * 0.29)
+                                        .frame(width: rowWidth)
+                                        .position(x: rowCenterX, y: geometry.size.height * 0.297)
                                 }
 
                                 let secondRow = Array(page.dropFirst(columnCount))
                                 if !secondRow.isEmpty {
                                     appGridRow(secondRow, iconSize: iconSize)
-                                        .position(x: geometry.size.width * 0.466, y: geometry.size.height * 0.68)
+                                        .frame(width: rowWidth)
+                                        .position(x: rowCenterX, y: geometry.size.height * 0.687)
                                 }
                             }
                             .frame(width: geometry.size.width, height: geometry.size.height)
@@ -73,6 +77,13 @@ struct AppsScreen: View {
                             .padding(.bottom, geometry.size.height * 0.055)
                             .accessibilityElement(children: .ignore)
                             .accessibilityLabel("앱 페이지 \(selectedPage + 1), 총 \(pages.count)페이지")
+                        } else {
+                            HStack(spacing: max(9, geometry.size.width * 0.014)) {
+                                Circle().fill(Color.white).frame(width: max(7, iconSize * 0.045), height: max(7, iconSize * 0.045))
+                                Circle().fill(Color.white.opacity(0.58)).frame(width: max(7, iconSize * 0.045), height: max(7, iconSize * 0.045))
+                            }
+                            .padding(.bottom, geometry.size.height * 0.055)
+                            .accessibilityHidden(true)
                         }
                     }
                     .onChange(of: sections) { _, _ in
@@ -96,7 +107,7 @@ struct AppsScreen: View {
 
             ForEach(sections) { section in
                 Button { onSelect(section) } label: {
-                    VStack(spacing: max(5, iconSize * 0.035)) {
+                    VStack(spacing: max(5, iconSize * 0.085)) {
                         AppIconTile(section: section)
                             .frame(width: iconSize, height: iconSize)
 
