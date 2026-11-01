@@ -1,9 +1,11 @@
 import PhotosUI
 import SwiftUI
 import UIKit
+import UserNotifications
 
 struct SettingsScreen: View {
     @ObservedObject var model: AppModel
+    @ObservedObject var updateChecker: AppUpdateChecker
     @Binding var keepScreenAwake: Bool
     @Binding var showStatusBar: Bool
     @Binding var selectedWallpaperID: String
@@ -39,7 +41,7 @@ struct SettingsScreen: View {
                 case .apps:
                     AppLayoutSettingsView(store: layoutStore)
                 case .general:
-                    GeneralSettingsView(keepScreenAwake: $keepScreenAwake)
+                    GeneralSettingsView(keepScreenAwake: $keepScreenAwake, updateChecker: updateChecker)
                 case .display:
                     DisplaySettingsView(showStatusBar: $showStatusBar, appearance: $appearance, speedUnit: $speedUnit)
                 case .sound:
@@ -231,6 +233,7 @@ private struct AppLayoutSettingsView: View {
 
 private struct GeneralSettingsView: View {
     @Binding var keepScreenAwake: Bool
+    @ObservedObject var updateChecker: AppUpdateChecker
 
     var body: some View {
         Form {
@@ -243,6 +246,46 @@ private struct GeneralSettingsView: View {
             Section("데이터") {
                 Label("실시간 값은 연결된 ETS2에서 수신", systemImage: "waveform.path.ecg")
                 Label("운행 기록은 iPad에 저장", systemImage: "externaldrive")
+            }
+            Section("소프트웨어 업데이트") {
+                LabeledContent("설치된 버전", value: updateChecker.currentVersion)
+                switch updateChecker.state {
+                case .idle:
+                    Label("앱을 열 때 새 버전을 확인합니다.", systemImage: "arrow.clockwise")
+                        .foregroundStyle(.secondary)
+                case .checking:
+                    ProgressView("GitHub 릴리스 확인 중")
+                case .current:
+                    Label("최신 공개 릴리스가 설치되어 있습니다.", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                case .available(let version, let notes):
+                    VStack(alignment: .leading, spacing: 7) {
+                        Label("새 버전: \(version)", systemImage: "arrow.down.circle.fill")
+                            .foregroundStyle(.blue)
+                        if !notes.isEmpty { Text(String(notes.prefix(700))).font(.footnote).foregroundStyle(.secondary) }
+                        Text("버전 정보와 변경 내용은 앱 안에서 확인합니다. 설치는 App Store 또는 TestFlight 배포가 구성된 뒤 해당 배포 경로에서 처리해야 합니다.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                case .noPublishedRelease:
+                    Label("공개된 앱 릴리스가 아직 없습니다.", systemImage: "info.circle")
+                        .foregroundStyle(.secondary)
+                case .failed(let message):
+                    Label(message, systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                }
+                if let lastCheckedAt = updateChecker.lastCheckedAt {
+                    LabeledContent("마지막 확인", value: lastCheckedAt.formatted(date: .abbreviated, time: .shortened))
+                }
+                Button {
+                    Task { await updateChecker.checkNow() }
+                } label: {
+                    Label("업데이트 지금 확인", systemImage: "arrow.clockwise")
+                }
+                .disabled(updateChecker.state == .checking)
+                Text("iPadOS는 실행 중인 앱이 자기 자신을 교체 설치하는 것을 허용하지 않습니다. Xcode로 설치한 현재 빌드는 새 코드를 받을 때 Xcode에서 다시 실행해야 합니다. App Store 등록 후에는 iPad가 자동 업데이트를 설치합니다.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
@@ -283,8 +326,10 @@ private struct SoundSettingsView: View {
     var body: some View {
         Form {
             Section("스마트 오디오") {
-                Toggle("음성 안내 중 음악 음량 낮추기", isOn: $duckAudioForVoice)
-                Label("iPad에 가져온 오디오 파일을 재생하고 잠금 화면 및 외부 재생 제어를 지원합니다.", systemImage: "music.note.list")
+                Toggle("음성 안내 중 가져온 파일 음량 낮추기", isOn: $duckAudioForVoice)
+                Label("Apple Music 카탈로그와 가져온 오디오 파일을 재생하고, 잠금 화면 제어를 지원합니다.", systemImage: "music.note.list")
+                    .foregroundStyle(.secondary)
+                Label("Apple Music 재생 음량은 MusicKit에서 직접 조절할 수 없습니다.", systemImage: "info.circle")
                     .foregroundStyle(.secondary)
                 Label("YouTube 동영상은 공식 플레이어에서 직접 재생합니다.", systemImage: "play.rectangle")
                     .foregroundStyle(.secondary)
@@ -300,14 +345,44 @@ private struct SoundSettingsView: View {
 }
 
 private struct AlertSettingsView: View {
+    @AppStorage("alerts.system.enabled") private var systemAlertsEnabled = false
     @AppStorage("alerts.fuel.enabled") private var fuelEnabled = true
     @AppStorage("alerts.speed.enabled") private var speedEnabled = true
     @AppStorage("alerts.wear.enabled") private var wearEnabled = true
     @AppStorage("alerts.fuel.threshold") private var fuelThreshold = 15.0
     @AppStorage("alerts.speed.tolerance") private var speedTolerance = 5.0
+    @State private var systemAlertMessage: String?
 
     var body: some View {
         Form {
+            Section("iPad 알림") {
+                Toggle("잠금 화면 및 배너 알림", isOn: Binding(
+                    get: { systemAlertsEnabled },
+                    set: { enabled in
+                        guard enabled else {
+                            systemAlertsEnabled = false
+                            systemAlertMessage = nil
+                            return
+                        }
+                        Task {
+                            let granted = (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])) ?? false
+                            await MainActor.run {
+                                systemAlertsEnabled = granted
+                                systemAlertMessage = granted ? nil : "iPad 설정에서 ETS2 CarPlay의 알림을 허용해 주세요."
+                            }
+                        }
+                    }
+                ))
+                if let systemAlertMessage {
+                    Text(systemAlertMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.orange)
+                } else {
+                    Text("실제 게임 이벤트와 주행 경보를 iPad 알림으로 표시합니다.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
             Section("자동 경보") {
                 Toggle("연료 부족", isOn: $fuelEnabled)
                 if fuelEnabled {

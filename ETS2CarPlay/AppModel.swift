@@ -3,6 +3,8 @@ import PhotosUI
 import SwiftUI
 import SwiftData
 import UIKit
+import MusicKit
+import UserNotifications
 
 enum AppSection: String, CaseIterable, Codable, Identifiable, Hashable {
     case dashboard
@@ -181,11 +183,25 @@ final class AppModel: ObservableObject {
             return "\(newest.title). \(newest.detail)"
         }
         if command.contains("일시정지") || command.contains("음악 정지") || command.contains("음악 멈춰") {
+            let applePlayer = ApplicationMusicPlayer.shared
+            if applePlayer.queue.currentEntry != nil {
+                applePlayer.pause()
+                return "Apple Music을 일시정지했습니다."
+            }
             guard audio.currentTrack != nil else { return "재생 중인 음악이 없습니다." }
             audio.pause()
             return "음악을 일시정지했습니다."
         }
         if command.contains("재생") || command.contains("음악") {
+            let applePlayer = ApplicationMusicPlayer.shared
+            if applePlayer.queue.currentEntry != nil {
+                do {
+                    try await applePlayer.play()
+                    return "Apple Music을 재생합니다."
+                } catch {
+                    return "Apple Music 재생을 시작하지 못했습니다."
+                }
+            }
             guard audio.currentTrack != nil else { return "먼저 음악 화면에서 재생할 파일을 선택해 주세요." }
             audio.resume()
             return "음악을 재생합니다."
@@ -278,6 +294,14 @@ final class AppModel: ObservableObject {
         if let data = try? JSONEncoder().encode(notifications) {
             UserDefaults.standard.set(data, forKey: "ets2.notifications.v1")
         }
+        guard UserDefaults.standard.bool(forKey: "alerts.system.enabled") else { return }
+        let content = UNMutableNotificationContent()
+        content.title = message.title
+        content.body = message.detail
+        content.sound = .default
+        UNUserNotificationCenter.current().add(
+            UNNotificationRequest(identifier: message.id.uuidString, content: content, trigger: nil)
+        )
     }
 
     private static func loadNotifications() -> [InboxMessage] {

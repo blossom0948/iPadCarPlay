@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
+import MusicKit
 
 struct DashboardScreen: View {
     @ObservedObject var model: AppModel
@@ -215,6 +216,15 @@ private struct MiniGauge: View {
 
 private struct MusicMiniCard: View {
     @ObservedObject var player: LocalAudioPlayer
+    @State private var appleQueue = ApplicationMusicPlayer.shared.queue
+    @State private var appleState = ApplicationMusicPlayer.shared.state
+    private let applePlayer = ApplicationMusicPlayer.shared
+
+    private var isAppleMusicActive: Bool { appleQueue.currentEntry != nil }
+    private var isPlaying: Bool {
+        isAppleMusicActive ? appleState.playbackStatus == .playing : player.isPlaying
+    }
+    private var hasTrack: Bool { isAppleMusicActive || player.currentTrack != nil }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -223,37 +233,57 @@ private struct MusicMiniCard: View {
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.72))
                 Spacer()
-                Text(player.isPlaying ? "재생 중" : "실제 보관함")
+                Text(isPlaying ? "재생 중" : (isAppleMusicActive ? "Apple Music" : "가져온 파일"))
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.60))
             }
             HStack(spacing: 13) {
-                RoundedRectangle(cornerRadius: 15, style: .continuous)
-                    .fill(LinearGradient(colors: [.purple, .pink, .orange], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 58, height: 58)
-                    .overlay(Image(systemName: "waveform").font(.system(size: 23)).foregroundStyle(.white))
+                Group {
+                    if isAppleMusicActive, let artwork = appleQueue.currentEntry?.artwork {
+                        ArtworkImage(artwork, width: 58, height: 58)
+                            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                    } else {
+                        RoundedRectangle(cornerRadius: 15, style: .continuous)
+                            .fill(LinearGradient(colors: [.purple, .pink, .orange], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .overlay(Image(systemName: "waveform").font(.system(size: 23)).foregroundStyle(.white))
+                    }
+                }
+                .frame(width: 58, height: 58)
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(player.currentTrack?.title ?? "음악 파일을 추가하세요")
+                    Text(appleQueue.currentEntry?.title ?? player.currentTrack?.title ?? "음악을 선택하세요")
                         .font(.system(size: 14, weight: .bold))
                         .lineLimit(1)
-                    Text(player.currentTrack == nil ? "가져온 파일만 표시됩니다" : "iPad 음악 보관함")
+                    Text(isAppleMusicActive ? (appleQueue.currentEntry?.subtitle ?? "Apple Music") : (player.currentTrack == nil ? "Apple Music 또는 파일을 선택하세요" : "가져온 오디오 파일"))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.white.opacity(0.62))
                 }
                 Spacer(minLength: 0)
             }
             HStack(spacing: 22) {
-                Button(action: player.previous) { Image(systemName: "backward.end.fill") }
-                Button(action: player.togglePlayback) {
-                    Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+                Button {
+                    if isAppleMusicActive { Task { try? await applePlayer.skipToPreviousEntry() } }
+                    else { player.previous() }
+                } label: { Image(systemName: "backward.end.fill") }
+                Button {
+                    if isAppleMusicActive {
+                        if isPlaying { applePlayer.pause() }
+                        else { Task { try? await applePlayer.play() } }
+                    } else {
+                        player.togglePlayback()
+                    }
+                } label: {
+                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                         .font(.system(size: 15, weight: .bold))
                         .frame(width: 36, height: 36)
                         .background(Color.white.opacity(0.17), in: Circle())
                 }
-                .disabled(player.currentTrack == nil)
-                Button(action: player.next) { Image(systemName: "forward.end.fill") }
+                .disabled(!hasTrack)
+                Button {
+                    if isAppleMusicActive { Task { try? await applePlayer.skipToNextEntry() } }
+                    else { player.next() }
+                } label: { Image(systemName: "forward.end.fill") }
                 Spacer()
-                Text(player.currentTrack == nil ? "재생 정보 없음" : "실제 재생")
+                Text(hasTrack ? (isAppleMusicActive ? "Apple Music" : "파일 재생") : "재생 정보 없음")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.white.opacity(0.56))
             }

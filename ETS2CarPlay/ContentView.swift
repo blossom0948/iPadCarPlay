@@ -9,6 +9,7 @@ struct ContentView: View {
     @StateObject private var model = AppModel()
     @StateObject private var wallpaperStore = WallpaperStore()
     @StateObject private var layoutStore = AppLayoutStore()
+    @StateObject private var updateChecker = AppUpdateChecker()
     @AppStorage("selectedWallpaperID") private var selectedWallpaperID = WallpaperPreset.aurora.rawValue
     @AppStorage("speedUnit") private var speedUnit = "km/h"
     @AppStorage("showStatusBar") private var showStatusBar = true
@@ -56,6 +57,7 @@ struct ContentView: View {
                 if !bridgeHost.isEmpty {
                     model.bridge.connect(host: bridgeHost, port: bridgePort, pairingCode: "")
                 }
+                Task { await updateChecker.checkIfNeeded() }
             }
             .onChange(of: keepScreenAwake) { _, shouldStayAwake in
                 UIApplication.shared.isIdleTimerDisabled = shouldStayAwake
@@ -94,6 +96,7 @@ struct ContentView: View {
         case .settings:
             SettingsScreen(
                 model: model,
+                updateChecker: updateChecker,
                 keepScreenAwake: $keepScreenAwake,
                 showStatusBar: $showStatusBar,
                 selectedWallpaperID: $selectedWallpaperID,

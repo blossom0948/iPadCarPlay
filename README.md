@@ -11,8 +11,11 @@ iPad에서 실행하는 ETS2 대시보드입니다. iPad Air와 iPadOS 27을 대
 - ETS2 창이 활성화된 동안 키 입력을 전달하는 원격 조작
 - SwiftData 운행 기록, 누적 거리·연료·속도·게임 이벤트 기록, CSV 내보내기
 - 실제 게임 이벤트를 읽어주는 가상 전화 화면과 알림 센터
+- 연료·과속·손상·게임 이벤트의 앱 내 알림과 선택 가능한 iPad 배너/잠금 화면 알림
+- iPad가 지원하면 앱 안의 메시지 작성 화면과 FaceTime 오디오 발신
 - 버튼을 눌러 시작하는 한국어 음성 인식 및 음성 안내
-- iPad에 가져온 오디오 파일 재생, 백그라운드 재생, 잠금 화면 제어, 음성 중 음량 낮추기
+- Apple Music 카탈로그 검색·재생과 iPad에 가져온 오디오 파일 재생, 백그라운드 재생, 잠금 화면 제어, 가져온 파일의 음성 중 음량 낮추기
+- 앱 실행 시 GitHub 공개 릴리스에서 새 버전과 변경 내용을 자동 확인
 - 공식 YouTube 임베드 플레이어에 동영상 URL 또는 ID 입력
 - 앱 배경, 개인 사진, 앱 아이콘 순서와 표시, 화면 모드, 속도 단위, 알림 기준 사용자화
 - iPad 설정 앱에서 익숙한 사이드바와 기본 `Form` 구성 요소를 사용하는 설정 화면
@@ -43,11 +46,18 @@ Apple의 현재 Xcode 호환 표에서 Xcode 27은 iPadOS 27 기기를 지원합
 2. `ETS2CarPlay.xcodeproj`를 Xcode에서 엽니다.
 3. Xcode에서 **ETS2CarPlay** 앱 대상을 선택하고 **Signing & Capabilities**에서 **Automatically manage signing**을 켭니다.
 4. 본인의 Apple 계정을 Team으로 선택합니다. Bundle Identifier가 이미 사용 중이면 `com.blossom0948.ets2carplay`를 본인만 사용하는 값으로 바꿉니다.
-5. iPad Air를 USB로 연결하고 iPad에서 이 Mac을 신뢰합니다. iPadOS의 **설정 → 개인정보 보호 및 보안 → 개발자 모드**를 켜고 재시동합니다.
-6. Xcode 상단의 실행 기기에서 iPad Air를 선택하고 **Run**을 누릅니다.
-7. 처음 사용하는 기능에서 로컬 네트워크, 마이크, 음성 인식 권한을 허용합니다. 권한을 거부해도 텔레메트리, 음악 파일 재생 등 나머지 기능은 계속 사용할 수 있습니다.
+5. Apple Music을 사용하려면 Apple Developer 계정에서 이 Bundle Identifier의 App ID를 열고 **App Services → MusicKit**을 켭니다. [Apple MusicKit 설정 안내](https://developer.apple.com/help/account/services/musickit)
+6. iPad Air를 USB로 연결하고 iPad에서 이 Mac을 신뢰합니다. Xcode와 페어링한 뒤 iPadOS의 **설정 → 개인정보 보호 및 보안 → 개발자 모드**를 켜고 재시동한 다음, 확인 창에서 활성화합니다.
+7. Xcode 상단의 실행 기기에서 iPad Air를 선택하고 **Run**을 누릅니다.
+8. 처음 사용하는 기능에서 로컬 네트워크, Apple Music, 마이크, 음성 인식 권한을 허용합니다. Apple Music 전체 카탈로그 재생에는 활성 구독이 필요합니다. 구독이 없어도 가져온 오디오 파일 재생은 사용할 수 있습니다.
 
 프로젝트의 최소 배포 버전은 iPadOS 17입니다. 사용자의 iPadOS 27.0.1도 대상 범위에 포함됩니다. 이 저장소를 작성한 환경에는 Xcode 앱과 iOS SDK가 설치되어 있지 않아, 실제 기기 서명 및 설치는 아직 실행하지 못했습니다.
+
+## 앱 업데이트
+
+앱은 실행할 때 GitHub Releases API를 직접 확인하고, 새 버전 번호와 변경 내용을 **설정 → 일반 → 소프트웨어 업데이트**에 표시합니다. 브라우저나 웹 페이지를 열지 않습니다. 공개 릴리스가 아직 없으면 앱에서 그렇게 표시합니다.
+
+iPadOS는 실행 중인 앱이 자기 앱을 교체 설치하는 것을 허용하지 않습니다. 현재처럼 Xcode로 설치한 개발 빌드는 새 코드를 받을 때 Xcode에서 다시 실행해야 합니다. 이 반복을 없애려면 App Store나 TestFlight로 배포해야 합니다. App Store 앱은 기본적으로 자동 업데이트되며, 설정은 **설정 → 앱 → App Store → 앱 업데이트**에서 확인할 수 있습니다. TestFlight도 앱별 **Automatic Updates**를 켜면 새 베타 빌드를 자동 설치합니다. 정식 이용을 위해서는 App Store 배포가 필요합니다. 두 방식 모두 Apple Developer Program 가입과 App Store Connect 등록이 필요하며, 정식 배포는 심사도 통과해야 합니다. 이 계정과 등록은 아직 설정되지 않았습니다. [Apple의 배포 방법](https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases) · [iPad 자동 업데이트 설정](https://support.apple.com/en-us/102629) · [TestFlight 자동 업데이트](https://testflight.apple.com/)
 
 ## Windows PC와 ETS2 연결
 
@@ -109,8 +119,8 @@ Apple의 현재 Xcode 호환 표에서 Xcode 27은 iPadOS 27 기기를 지원합
 ## 실제 데이터와 기능 범위
 
 - **내비게이션:** SCS SDK가 주는 남은 거리, ETA, 제한 속도와 게임 월드 좌표를 표시합니다. SDK 좌표는 GPS 위도·경도가 아니고 도로 경로선도 제공하지 않으므로 지도 위에 가짜 도로나 회전 안내선을 그리지 않습니다.
-- **가상 전화와 메시지:** 휴대전화 통화망, iMessage 또는 SMS에 연결하지 않습니다. 배송·벌금·통행료와 실제 텔레메트리 경보를 앱 안의 알림으로 보여주고, 원하면 음성으로 읽습니다.
-- **음악:** 사용자가 파일 앱에서 가져온 오디오 파일을 재생합니다. Apple Music 카탈로그 스트리밍은 Apple Music 권한·구독 설정이 필요해 이 버전에 포함하지 않았습니다.
+- **전화와 메시지:** FaceTime 오디오 발신은 iPad의 FaceTime 앱을 사용합니다. 문자는 iPadOS의 표준 작성 화면에서 수신자와 내용을 확인한 뒤 전송합니다. 수신 메시지함이나 통화 기록을 읽지 않습니다. 배송·벌금·통행료와 텔레메트리 경보는 앱 안의 알림 센터에 쌓이며, 알림 권한을 허용하면 iPad 배너와 잠금 화면에도 표시됩니다. [FaceTime iPad 안내](https://support.apple.com/guide/ipad/make-facetime-calls-ipad6b71e29e/27/ipados) · [Message UI 문서](https://developer.apple.com/documentation/messageui)
+- **음악:** Apple Music 탭은 MusicKit으로 카탈로그를 검색·재생하고, 가져온 파일 탭은 로컬 오디오를 재생합니다. MusicKit은 App ID에서 활성화하고 앱 권한을 허용해야 합니다. Apple Music 카탈로그 재생은 활성 구독을 요구합니다. 음성 중 음량 낮추기는 앱에 가져온 파일에 적용됩니다. [Apple MusicKit 문서](https://developer.apple.com/documentation/musickit) · [ApplicationMusicPlayer 문서](https://developer.apple.com/documentation/musickit/applicationmusicplayer)
 - **YouTube:** YouTube가 제공하는 임베드 플레이어를 사용합니다. URL 또는 ID를 입력해 재생하며 YouTube 컨트롤과 광고를 유지합니다. 플레이어 화면을 가리거나 오디오를 추출하지 않습니다. [YouTube 공식 임베드 플레이어 지침](https://developers.google.com/youtube/terms/required-minimum-functionality)
 - **배경화면:** 앱에 포함된 여섯 가지 원본 색상 디자인과 사용자의 사진을 선택할 수 있습니다. Apple OS에서 제공하는 독점 시스템 배경 이미지 파일은 포함하지 않습니다.
 - **CarPlay:** Apple CarPlay 시스템 앱이나 자동차 디스플레이 연결 기능이 아닙니다. iPad 단독 실행용 CarPlay 스타일 인터페이스입니다.
