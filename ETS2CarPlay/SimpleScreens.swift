@@ -8,17 +8,10 @@ struct AppsScreen: View {
     @ObservedObject var layoutStore: AppLayoutStore
     let onSelect: (AppSection) -> Void
 
-    private let columns = [GridItem(.adaptive(minimum: 112), spacing: 18)]
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text("앱")
-                    .font(.system(size: 29, weight: .bold, design: .rounded))
-                Text("ETS2 운행을 위한 기능")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.64))
-            }
+        GeometryReader { geometry in
+            let columnCount = geometry.size.width >= 900 ? 5 : 4
+            let columns = Array(repeating: GridItem(.flexible(), spacing: 30, alignment: .center), count: columnCount)
 
             Group {
                 if layoutStore.visibleSections.isEmpty {
@@ -28,31 +21,35 @@ struct AppsScreen: View {
                         Text("설정의 앱 정리에서 앱 아이콘을 다시 표시하세요.")
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .dashboardCard(cornerRadius: 26)
                 } else {
                     ScrollView {
-                        LazyVGrid(columns: columns, spacing: 18) {
+                        LazyVGrid(columns: columns, spacing: 42) {
                             ForEach(layoutStore.visibleSections) { section in
                                 Button { onSelect(section) } label: {
-                                    VStack(spacing: 10) {
+                                    VStack(spacing: 12) {
                                         AppIconTile(section: section)
                                             .frame(width: 92, height: 92)
-                                            .shadow(color: section.color.opacity(0.22), radius: 15, y: 8)
+                                            .shadow(color: section.color.opacity(0.20), radius: 13, y: 7)
                                         Text(section.title)
-                                            .font(.system(size: 12, weight: .semibold))
-                                            .foregroundStyle(.white)
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundStyle(.white.opacity(0.94))
+                                            .lineLimit(1)
+                                            .minimumScaleFactor(0.8)
                                     }
                                     .frame(maxWidth: .infinity)
+                                    .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
                             }
                         }
-                        .padding(4)
+                        .frame(maxWidth: 1_040)
+                        .frame(maxWidth: .infinity, minHeight: geometry.size.height)
+                        .padding(.vertical, 22)
                     }
                     .scrollIndicators(.hidden)
-                    .dashboardCard(cornerRadius: 26)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }

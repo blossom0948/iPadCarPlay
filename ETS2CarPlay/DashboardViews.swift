@@ -18,28 +18,7 @@ struct DashboardScreen: View {
 
     var body: some View {
         GeometryReader { geometry in
-            VStack(alignment: .leading, spacing: 18) {
-                HStack(alignment: .bottom) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("운행 대시보드")
-                            .font(.system(size: 29, weight: .bold, design: .rounded))
-                        Text("ETS2 실제 텔레메트리")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.64))
-                    }
-                    Spacer()
-                    Label(
-                        bridge.isConnected ? bridge.gameState.label : bridge.status.label,
-                        systemImage: bridge.isConnected && bridge.gameState == .live ? "dot.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash"
-                    )
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.84))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.white.opacity(0.10), in: Capsule())
-                }
-
-                HStack(spacing: 16) {
+            HStack(spacing: 13) {
                     NavigationDataCard(snapshot: snapshot, gameState: bridge.gameState)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     VStack(spacing: 16) {
@@ -50,9 +29,7 @@ struct DashboardScreen: View {
                     }
                     .frame(width: min(max(geometry.size.width * 0.34, 290), 360))
                 }
-                .frame(maxHeight: .infinity)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
@@ -62,63 +39,84 @@ struct NavigationDataCard: View {
     let gameState: GameConnectionState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Label("ETS2 내비게이션 정보", systemImage: "location.north.line.fill")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Color(red: 0.60, green: 0.94, blue: 0.82))
+                Label("내비게이션", systemImage: "location.north.fill")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.92))
                 Spacer()
-                Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.62))
+                HStack(spacing: 7) {
+                    Circle()
+                        .fill(gameState == .live ? Color.green : Color.orange)
+                        .frame(width: 8, height: 8)
+                    Text(gameState.label)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.74))
+                }
             }
 
             if let snapshot {
-                VStack(alignment: .leading, spacing: 7) {
-                    Text(snapshot.destinationCity ?? "목적지 정보 없음")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                    Text(snapshot.destinationCompany ?? snapshot.cargo ?? "게임이 제공하는 목적지 정보")
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("목적지")
                         .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.58))
+                    Text(snapshot.destinationCity ?? "목적지 정보 없음")
+                        .font(.system(size: 31, weight: .bold, design: .rounded))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    Text(snapshot.destinationCompany ?? snapshot.cargo ?? "게임에서 받은 운행 정보")
+                        .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(.white.opacity(0.68))
                 }
-                Spacer(minLength: 2)
-                HStack(spacing: 0) {
-                    NavigationMetric(title: "남은 거리", value: snapshot.navigationDistanceKm.map { "\($0.formatted(.number.precision(.fractionLength(0...1)))) km" } ?? "—")
-                    Spacer()
-                    NavigationMetric(title: "예상 시간", value: snapshot.navigationEtaSeconds.map(formatDuration) ?? "—")
-                    Spacer()
-                    NavigationMetric(title: "제한 속도", value: snapshot.speedLimitKph.map { "\(Int($0.rounded())) km/h" } ?? "—")
+                .padding(.top, 34)
+
+                Spacer(minLength: 16)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("남은 거리")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.62))
+                    Text(snapshot.navigationDistanceKm.map { "\($0.formatted(.number.precision(.fractionLength(0...1)))) km" } ?? "—")
+                        .font(.system(size: 43, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
                 }
-                Divider().overlay(Color.white.opacity(0.14))
-                HStack(spacing: 9) {
-                    Image(systemName: gameState == .live ? "checkmark.circle.fill" : "pause.circle.fill")
-                        .foregroundStyle(gameState == .live ? .green : .orange)
-                    Text(gameState.label)
-                        .font(.system(size: 12, weight: .semibold))
-                    Spacer()
-                    Text("SCS SDK 데이터")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.56))
+
+                Spacer(minLength: 22)
+
+                HStack(spacing: 0) {
+                    NavigationMetric(title: "예상 시간", value: snapshot.navigationEtaSeconds.map(formatDuration) ?? "—")
+                    Rectangle()
+                        .fill(Color.white.opacity(0.16))
+                        .frame(width: 1, height: 43)
+                        .padding(.horizontal, 22)
+                    NavigationMetric(title: "속도 제한", value: snapshot.speedLimitKph.map { "\(Int($0.rounded())) km/h" } ?? "—")
+                    Spacer(minLength: 0)
                 }
             } else {
-                Spacer()
-                ContentUnavailableView {
-                    Label("실제 주행 데이터를 기다리는 중", systemImage: "antenna.radiowaves.left.and.right")
-                } description: {
-                    Text("Windows 브리지와 ETS2 텔레메트리 플러그인을 연결하면 게임에서 받은 값이 표시됩니다.")
+                Spacer(minLength: 18)
+                HStack(spacing: 19) {
+                    Image(systemName: "location.north.circle.fill")
+                        .font(.system(size: 45, weight: .regular))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(Color(red: 0.28, green: 0.70, blue: 1.00))
+                    VStack(alignment: .leading, spacing: 7) {
+                        Text("ETS2 연결 대기 중")
+                            .font(.system(size: 23, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                        Text("Windows 브리지와 게임을 연결하면 경로 정보가 여기에 표시됩니다.")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.66))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
-                .foregroundStyle(.white)
-                Spacer()
+                Spacer(minLength: 18)
             }
-
-            Text("ETS2는 도로 경로선을 제공하지 않으므로 이 화면은 실제 거리·ETA·제한속도만 표시합니다.")
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.white.opacity(0.48))
         }
-        .padding(22)
+        .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background(Color(red: 0.03, green: 0.13, blue: 0.16).opacity(0.88), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).stroke(Color.white.opacity(0.13), lineWidth: 1))
+        .background(Color.black.opacity(0.38), in: RoundedRectangle(cornerRadius: 25, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 25, style: .continuous).stroke(Color.white.opacity(0.12), lineWidth: 1))
     }
 
     private func formatDuration(_ seconds: Double) -> String {
@@ -152,8 +150,8 @@ struct TruckTelemetryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label("트럭 계기판", systemImage: "steeringwheel")
-                    .font(.system(size: 12, weight: .semibold))
+                Label("차량", systemImage: "steeringwheel")
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.white.opacity(0.72))
                 Spacer()
                 Text(snapshot?.paused == true ? "일시정지" : (snapshot?.gameActive == true ? "주행 중" : "대기"))
@@ -162,10 +160,10 @@ struct TruckTelemetryCard: View {
             }
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(speedText)
-                    .font(.system(size: 42, weight: .bold, design: .rounded))
+                    .font(.system(size: 50, weight: .bold, design: .rounded))
                     .monospacedDigit()
                 Text(speedUnit)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.66))
                 Spacer()
                 Text("기어 \(snapshot?.gear.map(String.init) ?? "—")")
@@ -181,7 +179,7 @@ struct TruckTelemetryCard: View {
                     .foregroundStyle(.white.opacity(0.55))
             }
         }
-        .padding(18)
+        .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .dashboardCard(cornerRadius: 24)
     }
@@ -229,11 +227,11 @@ private struct MusicMiniCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label("음악", systemImage: "music.note")
-                    .font(.system(size: 12, weight: .semibold))
+                Label("지금 재생 중", systemImage: "music.note")
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.white.opacity(0.72))
                 Spacer()
-                Text(isPlaying ? "재생 중" : (isAppleMusicActive ? "Apple Music" : "가져온 파일"))
+                Text(isPlaying ? "재생 중" : (hasTrack ? "일시 정지" : "선택 없음"))
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.60))
             }
@@ -290,7 +288,7 @@ private struct MusicMiniCard: View {
             .buttonStyle(.plain)
             .foregroundStyle(.white)
         }
-        .padding(18)
+        .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .dashboardCard(cornerRadius: 24)
     }

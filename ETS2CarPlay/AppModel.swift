@@ -70,7 +70,7 @@ enum AppSection: String, CaseIterable, Codable, Identifiable, Hashable {
     }
 
     static let launcherItems: [AppSection] = [
-        .navigation, .music, .youtube, .phone, .messages, .voice, .stats, .controls, .settings
+        .dashboard, .navigation, .music, .youtube, .phone, .messages, .voice, .stats, .controls, .settings
     ]
 }
 
@@ -128,7 +128,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable, Hashable {
 
 @MainActor
 final class AppModel: ObservableObject {
-    @Published var selection: AppSection = .dashboard
+    @Published var selection: AppSection = .apps
     @Published private(set) var notifications: [InboxMessage] = []
     @Published private(set) var lastVoiceResponse: String?
     @Published private(set) var commandFeedback: String?

@@ -1,6 +1,8 @@
 # ETS2 CarPlay for iPad
 
-iPad에서 실행하는 ETS2 대시보드입니다. iPad Air와 iPadOS 27을 대상으로 구성했으며, 주행 값은 데모가 아니라 Windows에서 실행 중인 ETS2의 SCS Telemetry SDK로부터 받습니다.
+iPad에서 실행하는 ETS2 대시보드입니다. iPad Air와 iPadOS 27을 대상으로 구성했으며, 연결하면 Windows에서 실행 중인 ETS2의 SCS Telemetry SDK로부터 주행 값을 받습니다. Apple CarPlay 자체가 아니라 iPad용 CarPlay 스타일 앱입니다.
+
+처음 설치하는 순서와 USB·Wi-Fi 연결 방법은 [초보자 설치·연동 안내](INSTALLATION_GUIDE.md)를 참고하세요.
 
 ## 포함 기능
 
@@ -20,7 +22,7 @@ iPad에서 실행하는 ETS2 대시보드입니다. iPad Air와 iPadOS 27을 대
 - 앱 배경, 개인 사진, 앱 아이콘 순서와 표시, 화면 모드, 속도 단위, 알림 기준 사용자화
 - iPad 설정 앱에서 익숙한 사이드바와 기본 `Form` 구성 요소를 사용하는 설정 화면
 
-기본 화면은 실제 ETS2 데이터가 없으면 연결 상태와 데이터 대기 상태만 보여줍니다. 임의 속도·목적지·경로를 생성하지 않습니다.
+첫 화면은 CarPlay 스타일 앱 그리드와 왼쪽 빠른 실행 도크입니다. 운행 화면은 실제 ETS2 데이터가 없으면 연결 상태와 데이터 대기 상태만 보여주며, 임의 속도·목적지·경로를 생성하지 않습니다.
 
 설정은 보내주신 Liquid Glass 가이드와 [Apple Human Interface Guidelines의 Materials](https://developer.apple.com/design/human-interface-guidelines/materials), [Liquid Glass 적용 안내](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass)를 참고했습니다. SwiftUI `NavigationSplitView`, `List`, `Form`처럼 iPadOS 기본 요소를 사용하고, Liquid Glass는 사이드바 같은 탐색 계층에만 두었습니다. 정보 카드와 목록은 콘텐츠 계층으로 유지합니다.
 
@@ -40,18 +42,12 @@ SCS SDK 1.16 헤더와 MIT 라이선스 전문은 `WindowsBridge/SCS_SDK`에 포
 
 ## Mac에서 iPad 앱 설치
 
-Apple의 현재 Xcode 호환 표에서 Xcode 27은 iPadOS 27 기기를 지원합니다. [Apple Xcode 시스템 요구 사항](https://developer.apple.com/xcode/system-requirements/)을 확인하고, macOS에 맞는 Xcode 27 이상을 설치하세요.
+- **USB:** 케이블로 iPad를 연결하고 Xcode Device Hub에서 신뢰·페어링한 뒤 실행합니다. 처음 페어링이 끝난 뒤에는 케이블을 빼고 Wi-Fi로 실행할 수도 있습니다.
+- **Wi-Fi:** iPadOS 27과 Xcode 27은 같은 Wi-Fi에 있는 iPad를 케이블 없이 Device Hub에서 페어링할 수 있습니다.
 
-1. GitHub 저장소를 Mac에 복제하거나 내려받습니다.
-2. `ETS2CarPlay.xcodeproj`를 Xcode에서 엽니다.
-3. Xcode에서 **ETS2CarPlay** 앱 대상을 선택하고 **Signing & Capabilities**에서 **Automatically manage signing**을 켭니다.
-4. 본인의 Apple 계정을 Team으로 선택합니다. Bundle Identifier가 이미 사용 중이면 `com.blossom0948.ets2carplay`를 본인만 사용하는 값으로 바꿉니다.
-5. Apple Music을 사용하려면 Apple Developer 계정에서 이 Bundle Identifier의 App ID를 열고 **App Services → MusicKit**을 켭니다. [Apple MusicKit 설정 안내](https://developer.apple.com/help/account/services/musickit)
-6. iPad Air를 USB로 연결하고 iPad에서 이 Mac을 신뢰합니다. Xcode와 페어링한 뒤 iPadOS의 **설정 → 개인정보 보호 및 보안 → 개발자 모드**를 켜고 재시동한 다음, 확인 창에서 활성화합니다.
-7. Xcode 상단의 실행 기기에서 iPad Air를 선택하고 **Run**을 누릅니다.
-8. 처음 사용하는 기능에서 로컬 네트워크, Apple Music, 마이크, 음성 인식 권한을 허용합니다. Apple Music 전체 카탈로그 재생에는 활성 구독이 필요합니다. 구독이 없어도 가져온 오디오 파일 재생은 사용할 수 있습니다.
+두 방법의 단계별 안내, Apple 계정 서명, Developer Mode, Windows 브리지 설치는 [초보자 설치·연동 안내](INSTALLATION_GUIDE.md)에 정리했습니다. 프로젝트의 최소 배포 버전은 iPadOS 17입니다. Apple은 Xcode 27에서 iPadOS 27 이상 기기의 무선 페어링을 지원합니다. [Xcode 27 릴리스 노트](https://developer.apple.com/documentation/xcode-release-notes/xcode-27-release-notes) · [Device Hub 페어링 안내](https://developer.apple.com/documentation/xcode/managing-your-simulated-and-physical-devices-in-device-hub)
 
-프로젝트의 최소 배포 버전은 iPadOS 17입니다. 사용자의 iPadOS 27.0.1도 대상 범위에 포함됩니다. 이 저장소를 작성한 환경에는 Xcode 앱과 iOS SDK가 설치되어 있지 않아, 실제 기기 서명 및 설치는 아직 실행하지 못했습니다.
+현재 개발 환경에는 Xcode 앱과 iOS SDK가 설치되어 있지 않아 이 저장소의 iPad 앱은 실제 기기 빌드·서명·실행까지 검증하지 못했습니다.
 
 ## 앱 업데이트
 
@@ -124,6 +120,8 @@ iPadOS는 실행 중인 앱이 자기 앱을 교체 설치하는 것을 허용�
 - **YouTube:** YouTube가 제공하는 임베드 플레이어를 사용합니다. URL 또는 ID를 입력해 재생하며 YouTube 컨트롤과 광고를 유지합니다. 플레이어 화면을 가리거나 오디오를 추출하지 않습니다. [YouTube 공식 임베드 플레이어 지침](https://developers.google.com/youtube/terms/required-minimum-functionality)
 - **배경화면:** 앱에 포함된 여섯 가지 원본 색상 디자인과 사용자의 사진을 선택할 수 있습니다. Apple OS에서 제공하는 독점 시스템 배경 이미지 파일은 포함하지 않습니다.
 - **CarPlay:** Apple CarPlay 시스템 앱이나 자동차 디스플레이 연결 기능이 아닙니다. iPad 단독 실행용 CarPlay 스타일 인터페이스입니다.
+
+Apple은 iPad에서 CarPlay를 지원하지 않으며, 실제 차량 화면의 앱 UI는 CarPlay 프레임워크의 시스템 템플릿으로 표시됩니다. 이 프로젝트는 iPad에서 비슷한 탐색 구조와 시각 스타일을 구현하는 SwiftUI 앱입니다. 따라서 자동차의 CarPlay 화면에 나타나지는 않습니다. [Apple 지원: iPad와 CarPlay](https://support.apple.com/en-us/102521) · [Apple CarPlay 디자인 가이드](https://developer.apple.com/design/human-interface-guidelines/carplay)
 
 ## 개인정보와 네트워크
 

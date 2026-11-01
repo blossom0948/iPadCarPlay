@@ -29,12 +29,12 @@ struct ContentView: View {
                     .overlay(Color.black.opacity(0.42))
                     .ignoresSafeArea()
 
-                HStack(spacing: 18) {
+                HStack(spacing: 12) {
                     SideRail(selection: model.selection) { section in
                         model.select(section, reduceMotion: reduceMotion)
                     }
 
-                    VStack(spacing: 18) {
+                    VStack(spacing: 10) {
                         if showStatusBar {
                             TopStatusBar(bridge: model.bridge)
                         }
@@ -45,7 +45,8 @@ struct ContentView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .padding(18)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
                 .frame(width: geometry.size.width, height: geometry.size.height)
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
@@ -128,31 +129,27 @@ private struct TopStatusBar: View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
             HStack(spacing: 12) {
                 Text(context.date.formatted(date: .omitted, time: .shortened))
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
-                Text(context.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()))
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.64))
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .monospacedDigit()
 
                 Spacer()
 
                 HStack(spacing: 7) {
                     Circle()
                         .fill(statusColor)
-                        .frame(width: 7, height: 7)
-                    Text(bridge.isConnected ? bridge.gameState.label : bridge.status.label)
-                        .font(.system(size: 12, weight: .semibold))
+                        .frame(width: 8, height: 8)
+                    Text(bridge.isConnected ? "ETS2" : "연결 대기")
+                        .font(.system(size: 12, weight: .bold))
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .background(Color.black.opacity(0.24), in: Capsule())
+                .foregroundStyle(.white.opacity(0.84))
 
-                Image(systemName: bridge.isConnected ? "network" : "network.slash")
+                Image(systemName: "wifi")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.white.opacity(0.86))
             }
             .foregroundStyle(.white)
-            .padding(.horizontal, 8)
-            .frame(height: 30)
+            .padding(.horizontal, 5)
+            .frame(height: 34)
         }
     }
 
@@ -171,62 +168,64 @@ private struct SideRail: View {
     let selection: AppSection
     let onSelect: (AppSection) -> Void
 
-    private let items = AppSection.allCases
+    private let dockItems: [AppSection] = [.navigation, .music, .phone, .messages, .dashboard]
 
     var body: some View {
-        VStack(spacing: 8) {
-            ForEach(items) { item in
-                Button {
-                    onSelect(item)
-                } label: {
-                    VStack(spacing: 5) {
-                        Image(systemName: item.symbol)
-                            .font(.system(size: 19, weight: .semibold))
-                            .frame(height: 22)
-                        Text(item.title)
-                            .font(.system(size: 9, weight: .medium))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                    }
-                    .foregroundStyle(selection == item ? .white : .white.opacity(0.68))
-                    .frame(width: 68, height: 51)
-                    .background {
-                        if selection == item {
-                            RoundedRectangle(cornerRadius: 17, style: .continuous)
-                                .fill(item.color.opacity(0.30))
-                        }
-                    }
-                    .overlay(alignment: .leading) {
-                        if selection == item {
-                            Capsule()
-                                .fill(item.color)
-                                .frame(width: 3, height: 24)
-                                .offset(x: -5)
-                        }
-                    }
-                    .contentShape(RoundedRectangle(cornerRadius: 17))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(item.title)
-                .accessibilityAddTraits(selection == item ? .isSelected : [])
-            }
+        VStack(spacing: 7) {
+            ForEach(dockItems) { item in dockButton(item) }
+
+            Spacer(minLength: 8)
+
+            Rectangle()
+                .fill(Color.white.opacity(0.13))
+                .frame(width: 35, height: 1)
+                .padding(.bottom, 3)
+
+            dockButton(.apps)
         }
-        .padding(.vertical, 14)
-        .padding(.horizontal, 8)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 6)
+        .frame(maxHeight: .infinity)
         .background {
             if #available(iOS 26.0, *) {
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                RoundedRectangle(cornerRadius: 23, style: .continuous)
                     .fill(.clear)
-                    .glassEffect(.regular, in: .rect(cornerRadius: 28))
+                    .glassEffect(.regular, in: .rect(cornerRadius: 23))
             } else {
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                RoundedRectangle(cornerRadius: 23, style: .continuous)
                     .fill(.ultraThinMaterial)
             }
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: 23, style: .continuous)
                 .stroke(Color.white.opacity(0.10), lineWidth: 1)
         }
+    }
+
+    private func dockButton(_ item: AppSection) -> some View {
+        Button {
+            onSelect(item)
+        } label: {
+            ZStack {
+                if selection == item {
+                    RoundedRectangle(cornerRadius: 17, style: .continuous)
+                        .fill(Color.white.opacity(0.17))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 17, style: .continuous)
+                                .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                        }
+                }
+                Image(systemName: item.symbol)
+                    .font(.system(size: 22, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+            }
+            .foregroundStyle(selection == item ? .white : .white.opacity(0.70))
+            .frame(width: 54, height: 48)
+            .contentShape(RoundedRectangle(cornerRadius: 17))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(item.title)
+        .accessibilityAddTraits(selection == item ? .isSelected : [])
     }
 }
 
