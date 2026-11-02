@@ -53,6 +53,9 @@ final class TripRecorder {
                 .filter { $0.endedAt == nil }
                 .max { $0.startedAt < $1.startedAt }
         }
+        if let currentTrip, currentTrip.movingSeconds > 0 {
+            movingSpeedTotal = currentTrip.averageSpeedKph * currentTrip.movingSeconds
+        }
     }
 
     var hasActiveTrip: Bool { currentTrip != nil }
