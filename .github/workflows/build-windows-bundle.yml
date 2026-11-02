@@ -17,10 +17,10 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install .NET SDK for publishing the bridge
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
 
@@ -68,7 +68,7 @@ jobs:
           Copy-Item "WindowsBridge/README-WINDOWS-QUICK-START.txt" (Join-Path $bundle "README-FIRST.txt")
 
       - name: Upload ready-to-run bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ETS2CarPlay-Windows
           path: WindowsBridge/dist/portable/
