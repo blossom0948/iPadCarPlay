@@ -15,6 +15,7 @@ struct SettingsScreen: View {
     @Binding var appearance: String
     @Binding var speedUnit: String
     @Binding var screenAspect: String
+    @Binding var appIconScale: Double
     @State private var selectedCategory: SettingsCategory?
 
     var body: some View {
@@ -29,7 +30,7 @@ struct SettingsScreen: View {
                                 .font(.system(size: 16, weight: .semibold))
                                 .padding(.horizontal, 15)
                                 .frame(height: 44)
-                                .background(Color.white.opacity(0.10), in: Capsule())
+                                .background(Color.white.opacity(0.17), in: Capsule())
                                 .overlay(Capsule().stroke(Color.white.opacity(0.12), lineWidth: 1))
                         }
                         .buttonStyle(CarPlayPressButtonStyle(pressedScale: 0.96))
@@ -47,7 +48,13 @@ struct SettingsScreen: View {
                     .foregroundStyle(.white)
 
                     detail(for: selectedCategory)
+                        .padding(14)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black.opacity(0.58), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .stroke(Color.white.opacity(0.13), lineWidth: 1)
+                        }
                 }
                 .transition(.asymmetric(
                     insertion: .move(edge: .trailing).combined(with: .opacity),
@@ -102,7 +109,7 @@ struct SettingsScreen: View {
         case .wallpaper: "기본 배경을 고르거나 사진에서 추가"
         case .apps: "홈 화면에 표시할 앱과 순서"
         case .general: "운행 화면, 데이터, 소프트웨어 업데이트"
-        case .display: "CarPlay 화면 비율, 상태 표시, 속도 단위"
+        case .display: "앱 아이콘 크기, 화면 비율, 상태 표시"
         case .sound: "음성 안내와 오디오 재생 설정"
         case .alerts: "연료, 속도, 차량 상태 경보"
         case .connection: "Windows PC와 ETS2 연결"
@@ -120,7 +127,7 @@ struct SettingsScreen: View {
         case .general:
             GeneralSettingsView(keepScreenAwake: $keepScreenAwake, updateChecker: updateChecker)
         case .display:
-            DisplaySettingsView(showStatusBar: $showStatusBar, appearance: $appearance, speedUnit: $speedUnit, screenAspect: $screenAspect)
+            DisplaySettingsView(showStatusBar: $showStatusBar, appearance: $appearance, speedUnit: $speedUnit, screenAspect: $screenAspect, appIconScale: $appIconScale)
         case .sound:
             SoundSettingsView()
         case .alerts:
@@ -162,10 +169,10 @@ private struct SettingsCategoryRow: View {
         }
         .padding(.horizontal, 15)
         .frame(height: 70)
-        .background(Color.white.opacity(0.075), in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+        .background(Color.black.opacity(0.50), in: RoundedRectangle(cornerRadius: 19, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 19, style: .continuous)
-                .stroke(Color.white.opacity(0.085), lineWidth: 1)
+                .stroke(Color.white.opacity(0.14), lineWidth: 1)
         }
         .contentShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
     }
@@ -178,19 +185,22 @@ private struct WallpaperSettingsView: View {
     @State private var importError: String?
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 16), count: 3)
 
-    private var activePreset: WallpaperPreset { WallpaperPreset(rawValue: selectedWallpaperID) ?? .aurora }
+    private var activePreset: WallpaperPreset { WallpaperPreset(rawValue: selectedWallpaperID) ?? .carPlayClassic }
+    private var activeImage: UIImage? {
+        selectedWallpaperID == "custom" ? wallpaperStore.customImage : nil
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("앱에 포함된 배경을 고르거나 사진 보관함에서 직접 추가하세요.")
+                    Text("기본 CarPlay 배경은 실제 차량의 CarPlay 설정에서 고릅니다. Apple은 이 앱이 불러올 수 있는 정식 배경 이미지 파일을 공개하지 않아, 아래에는 CarPlay 화면에 맞춘 자체 테마를 넣었습니다.")
                         .font(.system(size: 14, weight: .regular))
                         .foregroundStyle(.secondary)
                 }
 
                 ZStack(alignment: .bottomLeading) {
-                    WallpaperCanvas(preset: activePreset, image: selectedWallpaperID == "custom" ? wallpaperStore.customImage : nil)
+                    WallpaperCanvas(preset: activePreset, image: activeImage)
                     .frame(height: 190)
                     LinearGradient(colors: [.clear, .black.opacity(0.56)], startPoint: .center, endPoint: .bottom)
                     HStack(alignment: .bottom) {
@@ -220,18 +230,18 @@ private struct WallpaperSettingsView: View {
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
-                    Text("앱에서 제공하는 배경 디자인입니다. Apple 시스템 배경화면 파일을 포함하지 않습니다.")
+                    Text("이 테마는 Apple 정식 배경이 아닙니다. 실제 CarPlay 화면의 배경은 차량에서 설정하세요. 사진 보관함에서 배경을 추가할 수도 있습니다.")
                         .font(.system(size: 12, weight: .regular))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     LazyVGrid(columns: columns, spacing: 14) {
                         ForEach(WallpaperPreset.allCases) { preset in
                             WallpaperChoiceButton(name: preset.name, preset: preset, image: nil, isSelected: selectedWallpaperID == preset.rawValue) {
-                                selectedWallpaperID = preset.rawValue
+                                select(preset)
                             }
                         }
                         if let customImage = wallpaperStore.customImage {
-                            WallpaperChoiceButton(name: "내 사진", preset: .aurora, image: customImage, isSelected: selectedWallpaperID == "custom") {
+                            WallpaperChoiceButton(name: "내 사진", preset: .carPlayClassic, image: customImage, isSelected: selectedWallpaperID == "custom") {
                                 selectedWallpaperID = "custom"
                             }
                         }
@@ -272,6 +282,10 @@ private struct WallpaperSettingsView: View {
                 }
             }
         }
+    }
+
+    private func select(_ preset: WallpaperPreset) {
+        selectedWallpaperID = preset.rawValue
     }
 }
 
@@ -405,6 +419,7 @@ private struct DisplaySettingsView: View {
     @Binding var appearance: String
     @Binding var speedUnit: String
     @Binding var screenAspect: String
+    @Binding var appIconScale: Double
 
     var body: some View {
         Form {
@@ -415,6 +430,25 @@ private struct DisplaySettingsView: View {
                 }
             }
             Section("화면 구성") {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Label("홈 화면 아이콘 크기", systemImage: "square.grid.2x2")
+                        Spacer()
+                        Text("\(Int((appIconScale * 100).rounded()))%")
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                    Slider(value: $appIconScale, in: 0.80...1.15, step: 0.05)
+                        .accessibilityLabel("홈 화면 아이콘 크기")
+                        .accessibilityValue("\(Int((appIconScale * 100).rounded())) 퍼센트")
+                    HStack {
+                        Image(systemName: "textformat.size.smaller")
+                        Spacer()
+                        Image(systemName: "textformat.size.larger")
+                    }
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+                }
                 Picker("화면 비율", selection: $screenAspect) {
                     Text("iPad 전체 화면 · 권장").tag("ipad")
                     Text("CarPlay 와이드 · 8:3").tag("carPlay")
@@ -434,11 +468,16 @@ private struct DisplaySettingsView: View {
 
 private struct SoundSettingsView: View {
     @AppStorage("duckAudioForVoice") private var duckAudioForVoice = true
+    @AppStorage("showSystemMusic") private var showSystemMusic = true
 
     var body: some View {
         Form {
             Section("스마트 오디오") {
                 Toggle("음성 안내 중 가져온 파일 음량 낮추기", isOn: $duckAudioForVoice)
+                Toggle("Apple Music 앱의 현재 곡을 위젯에 표시", isOn: $showSystemMusic)
+                Text("Apple Music의 재생 정보는 미디어 보관함 권한을 허용하면 표시됩니다. YouTube 및 다른 음악 앱은 iPadOS에서 다른 앱에 재생 정보를 공개하지 않습니다.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
                 Label("Apple Music 카탈로그와 가져온 오디오 파일을 재생하고, 잠금 화면 제어를 지원합니다.", systemImage: "music.note.list")
                     .foregroundStyle(.secondary)
                 Label("Apple Music 재생 음량은 MusicKit에서 직접 조절할 수 없습니다.", systemImage: "info.circle")

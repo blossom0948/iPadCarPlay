@@ -21,6 +21,7 @@
 		A1000000000000000000000C /* YouTubePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000D /* YouTubePlayer.swift */; };
 		A1000000000000000000000D /* AppLayoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000E /* AppLayoutStore.swift */; };
 		A1000000000000000000000E /* AppUpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000010 /* AppUpdateChecker.swift */; };
+		A1000000000000000000000F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,6 +41,7 @@
 		B1000000000000000000000E /* AppLayoutStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLayoutStore.swift; sourceTree = "<group>"; };
 		B1000000000000000000000F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B10000000000000000000010 /* AppUpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdateChecker.swift; sourceTree = "<group>"; };
+		B10000000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +81,7 @@
 				B1000000000000000000000E /* AppLayoutStore.swift */,
 				B1000000000000000000000F /* Info.plist */,
 				B10000000000000000000010 /* AppUpdateChecker.swift */,
+				B10000000000000000000011 /* Assets.xcassets */,
 			);
 			path = ETS2CarPlay;
 			sourceTree = "<group>";
@@ -148,6 +151,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1000000000000000000000F /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -208,7 +212,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 9;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ETS2CarPlay/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "ETS2 CarPlay";
@@ -228,7 +233,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 9;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ETS2CarPlay/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "ETS2 CarPlay";

@@ -1,0 +1,62 @@
+name: Build Windows install bundle
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "WindowsBridge/**"
+      - ".github/workflows/build-windows-bundle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-bundle:
+    runs-on: windows-2022
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install .NET SDK for publishing the bridge
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Publish self-contained bridge
+        shell: pwsh
+        run: >-
+          dotnet publish WindowsBridge/BridgeServer/BridgeServer.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true
+          -o WindowsBridge/dist/bridge
+
+      - name: Build ETS2 telemetry plugin
+        shell: pwsh
+        run: |
+          cmake -S WindowsBridge/TelemetryPlugin -B WindowsBridge/build/TelemetryPlugin -G "Visual Studio 17 2022" -A x64
+          if ($LASTEXITCODE -ne 0) { throw "CMake configuration failed." }
+          cmake --build WindowsBridge/build/TelemetryPlugin --config Release
+          if ($LASTEXITCODE -ne 0) { throw "The telemetry plugin did not build." }
+
+      - name: Assemble ready-to-run Windows bundle
+        shell: pwsh
+        run: |
+          $bundle = Join-Path $env:GITHUB_WORKSPACE "WindowsBridge/dist/portable"
+          New-Item -ItemType Directory -Force -Path $bundle | Out-Null
+          Copy-Item "WindowsBridge/dist/bridge/BridgeServer.exe" $bundle
+          Copy-Item "WindowsBridge/dist/bridge/controls.json" $bundle
+          Copy-Item "WindowsBridge/build/TelemetryPlugin/Release/ets2carplay_telemetry.dll" $bundle
+          Copy-Item "WindowsBridge/Install-ETS2Plugin.ps1" $bundle
+          Copy-Item "WindowsBridge/Install-ETS2Plugin.bat" $bundle
+          Copy-Item "WindowsBridge/Start-Bridge.bat" $bundle
+          Copy-Item "WindowsBridge/README-WINDOWS-QUICK-START.txt" (Join-Path $bundle "README-FIRST.txt")
+
+      - name: Upload ready-to-run bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: ETS2CarPlay-Windows
+          path: WindowsBridge/dist/portable/
+          if-no-files-found: error
+          retention-days: 90

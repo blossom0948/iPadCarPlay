@@ -9,22 +9,26 @@ struct ContentView: View {
     @StateObject private var model = AppModel()
     @StateObject private var wallpaperStore = WallpaperStore()
     @StateObject private var layoutStore = AppLayoutStore()
+    @StateObject private var splitShortcutStore = SplitShortcutStore()
     @StateObject private var updateChecker = AppUpdateChecker()
-    @AppStorage("selectedWallpaperID") private var selectedWallpaperID = WallpaperPreset.aurora.rawValue
+    @AppStorage("selectedWallpaperID") private var selectedWallpaperID = WallpaperPreset.carPlayClassic.rawValue
     @AppStorage("speedUnit") private var speedUnit = "km/h"
     @AppStorage("showStatusBar") private var showStatusBar = true
     @AppStorage("keepScreenAwake") private var keepScreenAwake = false
     @AppStorage("appearance") private var appearance = "dark"
     @AppStorage("screenAspect") private var screenAspect = "ipad"
     @AppStorage("didMigrateToIPadCanvas") private var didMigrateToIPadCanvas = false
-    @AppStorage("splitMediaEnabled") private var splitMediaEnabled = false
+    @AppStorage("didMigrateToCarPlayWallpaper") private var didMigrateToCarPlayWallpaper = false
+    @AppStorage("appIconScale") private var appIconScale = 1.0
+    @State private var splitMediaEnabled = false
     @AppStorage("splitMediaRatio") private var splitMediaRatio = 0.54
     @AppStorage("bridgeHost") private var bridgeHost = ""
     @AppStorage("bridgePort") private var bridgePort = 8765
     @State private var mediaService: YouTubeService = .youtube
+    @State private var activeSplitPair: SplitPair?
 
     private var activePreset: WallpaperPreset {
-        WallpaperPreset(rawValue: selectedWallpaperID) ?? .aurora
+        WallpaperPreset(rawValue: selectedWallpaperID) ?? .carPlayClassic
     }
 
     var body: some View {
@@ -40,8 +44,8 @@ struct ContentView: View {
                 Color.black.ignoresSafeArea()
 
                 ZStack {
-                    WallpaperCanvas(preset: activePreset, image: selectedWallpaperID == "custom" ? wallpaperStore.customImage : nil)
-                        .overlay(Color.black.opacity(model.selection == .apps ? 0.08 : 0.42))
+                    WallpaperCanvas(preset: activePreset, image: selectedWallpaperImage)
+                        .overlay(Color.black.opacity(model.selection == .apps ? 0.04 : 0.48))
 
                     HStack(spacing: 0) {
                         SideRail(
@@ -51,23 +55,30 @@ struct ContentView: View {
                             railWidth: railWidth,
                             railHeight: screenHeight,
                             splitMediaEnabled: splitMediaEnabled,
-                            onToggleSplit: {
-                                withAnimation(reduceMotion ? nil : .spring(response: 0.44, dampingFraction: 0.86)) {
-                                    splitMediaEnabled.toggle()
-                                }
-                            }
+                            onToggleSplit: toggleSplit
                         ) { section in
                             selectSection(section)
                         }
 
                         Group {
                             if splitMediaEnabled {
-                                MediaSplitView(service: mediaService, ratio: $splitMediaRatio) {
-                                    splitPrimaryScreen
+                                let pair = activeSplitPair ?? splitPairForCurrentSelection
+                                MediaSplitView(pair: pair, ratio: $splitMediaRatio) {
+                                    screen(for: pair.primary)
                                 }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
                                 .transition(.move(edge: .trailing).combined(with: .opacity))
+                            } else if model.selection == .apps {
+                                activeScreen
+                                    .transition(.asymmetric(
+                                        insertion: .opacity.combined(with: .scale(scale: 0.97)),
+                                        removal: .opacity
+                                    ))
                             } else {
                                 activeScreen
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 16)
                                     .transition(.asymmetric(
                                         insertion: .opacity.combined(with: .scale(scale: 0.97)),
                                         removal: .opacity
@@ -90,6 +101,14 @@ struct ContentView: View {
                     screenAspect = "ipad"
                     didMigrateToIPadCanvas = true
                 }
+                if !didMigrateToCarPlayWallpaper {
+                    selectedWallpaperID = WallpaperPreset.carPlayClassic.rawValue
+                    didMigrateToCarPlayWallpaper = true
+                }
+                if activeSplitPair == nil, let recent = splitShortcutStore.recent {
+                    activeSplitPair = recent
+                    mediaService = recent.media
+                }
                 model.attach(modelContext: modelContext)
                 if !bridgeHost.isEmpty {
                     model.bridge.connect(host: bridgeHost, port: bridgePort, pairingCode: "")
@@ -108,16 +127,52 @@ struct ContentView: View {
         .ignoresSafeArea()
     }
 
+    private var selectedWallpaperImage: UIImage? {
+        if selectedWallpaperID == "custom" { return wallpaperStore.customImage }
+        return nil
+    }
+
+    private var splitPairForCurrentSelection: SplitPair {
+        let service: YouTubeService
+        let primary: AppSection
+        switch model.selection {
+        case .apps:
+            primary = .dashboard
+            service = mediaService
+        case .youtube:
+            primary = .dashboard
+            service = .youtube
+        case .youtubeMusic:
+            primary = .dashboard
+            service = .youtubeMusic
+        default:
+            primary = model.selection
+            service = mediaService
+        }
+        return SplitPair(primary: primary, media: service)
+    }
+
     @ViewBuilder
     private var activeScreen: some View {
-        switch model.selection {
+        screen(for: model.selection)
+    }
+
+    @ViewBuilder
+    private func screen(for section: AppSection) -> some View {
+        switch section {
         case .dashboard:
             DashboardScreen(model: model, speedUnit: speedUnit)
         case .apps:
             AppsScreen(
                 layoutStore: layoutStore,
                 onSelect: selectSection,
-                preferredColumns: screenAspect == "carPlay" ? 5 : 6
+                preferredColumns: 4,
+                iconScale: appIconScale,
+                recentSplit: splitShortcutStore.recent,
+                favoriteSplits: splitShortcutStore.favorites,
+                isFavorite: splitShortcutStore.isFavorite,
+                onOpenSplit: openSplitPair,
+                onToggleFavorite: splitShortcutStore.toggleFavorite
             )
         case .navigation:
             NavigationScreen(model: model, speedUnit: speedUnit)
@@ -148,26 +203,62 @@ struct ContentView: View {
                 layoutStore: layoutStore,
                 appearance: $appearance,
                 speedUnit: $speedUnit,
-                screenAspect: $screenAspect
+                screenAspect: $screenAspect,
+                appIconScale: $appIconScale
             )
         }
     }
 
-    @ViewBuilder
-    private var splitPrimaryScreen: some View {
-        switch model.selection {
-        case .apps, .youtube, .youtubeMusic:
-            DashboardScreen(model: model, speedUnit: speedUnit)
-        default:
-            activeScreen
+    private func toggleSplit() {
+        if splitMediaEnabled {
+            withAnimation(reduceMotion ? nil : .spring(response: 0.44, dampingFraction: 0.86)) {
+                splitMediaEnabled = false
+            }
+            return
+        }
+
+        let pair = splitPairForCurrentSelection
+        activeSplitPair = pair
+        splitShortcutStore.remember(pair)
+        withAnimation(reduceMotion ? nil : .spring(response: 0.44, dampingFraction: 0.86)) {
+            splitMediaEnabled = true
+        }
+    }
+
+    private func openSplitPair(_ pair: SplitPair) {
+        activeSplitPair = pair
+        mediaService = pair.media
+        splitShortcutStore.remember(pair)
+        model.select(pair.primary, reduceMotion: reduceMotion)
+        withAnimation(reduceMotion ? nil : .spring(response: 0.44, dampingFraction: 0.86)) {
+            splitMediaEnabled = true
         }
     }
 
     private func selectSection(_ section: AppSection) {
-        switch section {
-        case .youtube: mediaService = .youtube
-        case .youtubeMusic: mediaService = .youtubeMusic
-        default: break
+        if section == .apps {
+            var transaction = Transaction(animation: nil)
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                splitMediaEnabled = false
+                model.selection = .apps
+            }
+            return
+        }
+
+        if section == .youtube || section == .youtubeMusic {
+            mediaService = section == .youtube ? .youtube : .youtubeMusic
+            if splitMediaEnabled {
+                let current = activeSplitPair ?? splitPairForCurrentSelection
+                let pair = SplitPair(primary: current.primary, media: mediaService)
+                activeSplitPair = pair
+                splitShortcutStore.remember(pair)
+            }
+        } else if splitMediaEnabled {
+            let current = activeSplitPair ?? splitPairForCurrentSelection
+            let pair = SplitPair(primary: section, media: current.media)
+            activeSplitPair = pair
+            splitShortcutStore.remember(pair)
         }
         model.select(section, reduceMotion: reduceMotion)
     }
@@ -291,12 +382,12 @@ private struct SideRail: View {
         } label: {
             Group {
                 if item == .apps {
-                    LauncherMenuGlyph(side: dockIconSize)
-                        .padding(8)
-                        .background {
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Color.white.opacity(selection == item ? 0.22 : 0.08))
-                        }
+                    Image(systemName: "square.grid.2x2.fill")
+                        .font(.system(size: dockIconSize * 0.48, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.white)
+                        .frame(width: dockIconSize + 8, height: dockIconSize + 8)
+                        .background(Color.white.opacity(selection == item ? 0.22 : 0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 } else {
                     MiniDockIcon(section: item, isSelected: selection == item)
                         .frame(width: dockIconSize, height: dockIconSize)
@@ -312,13 +403,14 @@ private struct SideRail: View {
 }
 
 private struct AdaptiveLiquidGlass: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     let cornerRadius: CGFloat
 
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, *), !reduceTransparency {
             content.glassEffect(.regular, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         } else {
-            content.background(Color.black.opacity(0.26))
+            content.background(Color.black.opacity(0.78))
         }
     }
 }
@@ -337,13 +429,13 @@ private struct SplitIconMotion: ViewModifier {
 }
 
 private struct MediaSplitView<Primary: View>: View {
-    let service: YouTubeService
+    let pair: SplitPair
     @Binding var ratio: Double
     let primary: Primary
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(service: YouTubeService, ratio: Binding<Double>, @ViewBuilder primary: () -> Primary) {
-        self.service = service
+    init(pair: SplitPair, ratio: Binding<Double>, @ViewBuilder primary: () -> Primary) {
+        self.pair = pair
         _ratio = ratio
         self.primary = primary()
     }
@@ -363,8 +455,8 @@ private struct MediaSplitView<Primary: View>: View {
                 SplitPaneDivider(ratio: $ratio, totalWidth: usableWidth)
                     .frame(width: dividerWidth)
 
-                YouTubeScreen(initialService: service)
-                    .id(service)
+                YouTubeScreen(initialService: pair.media)
+                    .id(pair.media)
                     .frame(width: usableWidth - leadingWidth)
                     .frame(maxHeight: .infinity)
                     .clipped()
@@ -475,7 +567,7 @@ struct WallpaperCanvas: View {
                         .scaledToFill()
                         .frame(width: geometry.size.width, height: geometry.size.height)
                         .clipped()
-                } else if preset == .aurora {
+                } else if preset == .carPlayClassic {
                     CarPlayWallpaperArt()
                 } else {
                     LinearGradient(
@@ -635,7 +727,11 @@ struct AppIconTile: View {
                     .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 }
                 .overlay {
-                    CarPlayIconArtwork(section: section, side: side)
+                    Image(systemName: section.symbol)
+                        .font(.system(size: side * 0.48, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(section == .settings ? Color.black.opacity(0.62) : Color.white)
+                        .shadow(color: .black.opacity(0.12), radius: 2, y: 1)
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -668,7 +764,16 @@ struct AppIconTile: View {
             return LinearGradient(colors: [Color(red: 0.24, green: 0.61, blue: 0.92), Color(red: 0.10, green: 0.32, blue: 0.76)], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
         if section == .navigation {
-            return LinearGradient(colors: [Color.white, Color(white: 0.92)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            return LinearGradient(colors: [Color(red: 0.38, green: 0.79, blue: 0.47), Color(red: 0.91, green: 0.73, blue: 0.30), Color(red: 0.17, green: 0.64, blue: 0.92)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+        if section == .music {
+            return LinearGradient(colors: [Color(red: 1.00, green: 0.31, blue: 0.47), Color(red: 0.78, green: 0.04, blue: 0.36)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+        if section == .phone {
+            return LinearGradient(colors: [Color(red: 0.34, green: 0.86, blue: 0.46), Color(red: 0.08, green: 0.64, blue: 0.31)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+        if section == .messages {
+            return LinearGradient(colors: [Color(red: 0.42, green: 0.91, blue: 0.48), Color(red: 0.12, green: 0.66, blue: 0.32)], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
         return LinearGradient(
             colors: [section.color, section.color.opacity(0.84)],
@@ -830,7 +935,7 @@ extension View {
     func dashboardCard(cornerRadius: CGFloat = 26) -> some View {
         background(
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(Color.black.opacity(0.30))
+                .fill(Color.black.opacity(0.52))
         )
         .overlay {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)

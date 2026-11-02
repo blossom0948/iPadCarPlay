@@ -1,9 +1,11 @@
 import Combine
+import Foundation
 import PhotosUI
 import SwiftUI
 import SwiftData
 import UIKit
 import MusicKit
+import MediaPlayer
 import UserNotifications
 
 enum AppSection: String, CaseIterable, Codable, Identifiable, Hashable {
@@ -58,16 +60,16 @@ enum AppSection: String, CaseIterable, Codable, Identifiable, Hashable {
 
     var symbol: String {
         switch self {
-        case .dashboard: "waveform"
+        case .dashboard: "speedometer"
         case .apps: "square.grid.2x2.fill"
         case .navigation: "map.fill"
         case .music: "music.note"
         case .youtube: "play.rectangle.fill"
-        case .youtubeMusic: "music.note"
+        case .youtubeMusic: "music.note.list"
         case .phone: "phone.fill"
-        case .messages: "bubble.left.fill"
+        case .messages: "message.fill"
         case .voice: "mic.fill"
-        case .stats: "chart.line.uptrend.xyaxis"
+        case .stats: "chart.bar.fill"
         case .controls: "steeringwheel"
         case .settings: "gearshape.fill"
         }
@@ -351,40 +353,40 @@ struct InboxMessage: Codable, Identifiable, Equatable {
 }
 
 enum WallpaperPreset: String, CaseIterable, Identifiable, Hashable {
-    case aurora
-    case ocean
-    case sunset
-    case bloom
-    case violet
-    case midnight
+    case carPlayClassic
+    case carPlayOcean
+    case carPlayMidnight
+    case carPlaySunset
+    case carPlayViolet
+    case carPlayEmerald
 
     var id: String { rawValue }
 
     var name: String {
         switch self {
-        case .aurora: "오로라"
-        case .ocean: "블루 오션"
-        case .sunset: "선셋 글로우"
-        case .bloom: "소프트 블룸"
-        case .violet: "바이올렛 웨이브"
-        case .midnight: "미드나이트"
+        case .carPlayClassic: "CarPlay 클래식"
+        case .carPlayOcean: "오션 블루"
+        case .carPlayMidnight: "미드나이트"
+        case .carPlaySunset: "선셋"
+        case .carPlayViolet: "바이올렛"
+        case .carPlayEmerald: "에메랄드"
         }
     }
 
     var colors: [Color] {
         switch self {
-        case .aurora:
+        case .carPlayClassic:
             [Color(red: 0.18, green: 0.43, blue: 0.69), Color(red: 0.56, green: 0.73, blue: 0.70), Color(red: 0.96, green: 0.62, blue: 0.34), Color(red: 0.49, green: 0.40, blue: 0.70)]
-        case .ocean:
+        case .carPlayOcean:
             [Color(red: 0.02, green: 0.24, blue: 0.47), Color(red: 0.05, green: 0.53, blue: 0.66), Color(red: 0.18, green: 0.76, blue: 0.76)]
-        case .sunset:
+        case .carPlaySunset:
             [Color(red: 0.30, green: 0.12, blue: 0.39), Color(red: 0.80, green: 0.27, blue: 0.42), Color(red: 1.00, green: 0.61, blue: 0.30)]
-        case .bloom:
-            [Color(red: 0.37, green: 0.18, blue: 0.48), Color(red: 0.81, green: 0.37, blue: 0.63), Color(red: 1.00, green: 0.69, blue: 0.67)]
-        case .violet:
+        case .carPlayViolet:
             [Color(red: 0.10, green: 0.08, blue: 0.35), Color(red: 0.34, green: 0.23, blue: 0.70), Color(red: 0.66, green: 0.37, blue: 0.76)]
-        case .midnight:
+        case .carPlayMidnight:
             [Color(red: 0.02, green: 0.12, blue: 0.18), Color(red: 0.06, green: 0.32, blue: 0.31), Color(red: 0.20, green: 0.47, blue: 0.39)]
+        case .carPlayEmerald:
+            [Color(red: 0.02, green: 0.19, blue: 0.19), Color(red: 0.02, green: 0.48, blue: 0.37), Color(red: 0.35, green: 0.69, blue: 0.50)]
         }
     }
 
@@ -428,5 +430,88 @@ final class WallpaperStore: ObservableObject {
         } catch {
             return false
         }
+    }
+}
+
+@MainActor
+final class SystemMusicNowPlaying: ObservableObject {
+    @Published private(set) var isAuthorized = false
+    @Published private(set) var isPlaying = false
+    @Published private(set) var title: String?
+    @Published private(set) var artist: String?
+    @Published private(set) var album: String?
+    @Published private(set) var artwork: UIImage?
+
+    private let player = MPMusicPlayerController.systemMusicPlayer
+    private var observerTokens: [NSObjectProtocol] = []
+    private var isGeneratingNotifications = false
+
+    func start() async {
+        let authorization = await withCheckedContinuation { continuation in
+            MPMediaLibrary.requestAuthorization { status in
+                continuation.resume(returning: status)
+            }
+        }
+        guard authorization == .authorized else {
+            isAuthorized = false
+            clearTrack()
+            return
+        }
+
+        isAuthorized = true
+        if !isGeneratingNotifications {
+            player.beginGeneratingPlaybackNotifications()
+            isGeneratingNotifications = true
+        }
+        if observerTokens.isEmpty {
+            let notificationNames: [Notification.Name] = [
+                .MPMusicPlayerControllerNowPlayingItemDidChange,
+                .MPMusicPlayerControllerPlaybackStateDidChange
+            ]
+            observerTokens = notificationNames.map { name in
+                NotificationCenter.default.addObserver(forName: name, object: player, queue: .main) { [weak self] _ in
+                    Task { @MainActor [weak self] in self?.refresh() }
+                }
+            }
+        }
+        refresh()
+    }
+
+    func stop() {
+        observerTokens.forEach(NotificationCenter.default.removeObserver)
+        observerTokens.removeAll()
+        if isGeneratingNotifications {
+            player.endGeneratingPlaybackNotifications()
+            isGeneratingNotifications = false
+        }
+    }
+
+    func refresh() {
+        guard isAuthorized, let item = player.nowPlayingItem else {
+            clearTrack()
+            return
+        }
+        title = item.title
+        artist = item.artist
+        album = item.albumTitle
+        artwork = item.artwork?.image(at: CGSize(width: 96, height: 96))
+        isPlaying = player.playbackState == .playing
+    }
+
+    func togglePlayback() {
+        if player.playbackState == .playing { player.pause() }
+        else { player.play() }
+        refresh()
+    }
+
+    func skipToPrevious() { player.skipToPreviousItem() }
+    func skipToNext() { player.skipToNextItem() }
+
+    private func clearTrack() {
+        title = nil
+        artist = nil
+        album = nil
+        artwork = nil
+        isPlaying = false
     }
 }

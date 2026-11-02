@@ -2,7 +2,7 @@ import SwiftUI
 import SafariServices
 import WebKit
 
-enum YouTubeService: String, CaseIterable, Identifiable, Hashable {
+enum YouTubeService: String, CaseIterable, Codable, Identifiable, Hashable {
     case youtube
     case youtubeMusic
 
@@ -19,6 +19,13 @@ enum YouTubeService: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .youtube: "YouTube"
         case .youtubeMusic: "YT Music"
+        }
+    }
+
+    var appSection: AppSection {
+        switch self {
+        case .youtube: .youtube
+        case .youtubeMusic: .youtubeMusic
         }
     }
 
@@ -98,9 +105,11 @@ struct YouTubeScreen: View {
         .padding(16)
         .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.84), value: service)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: browser.isLoading)
-        .fullScreenCover(isPresented: $showingSafariMusic) {
+        .sheet(isPresented: $showingSafariMusic) {
             YouTubeMusicSafariView(url: YouTubeService.youtubeMusic.homeURL)
-                .ignoresSafeArea()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(20)
         }
         .onChange(of: service) { _, newService in
             errorMessage = nil
@@ -140,7 +149,7 @@ struct YouTubeScreen: View {
                     .font(.system(size: 24, weight: .bold, design: .rounded))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
-                Text(service == .youtube ? "공식 YouTube 화면" : "Safari 보안 화면으로 재생")
+                Text(service == .youtube ? "공식 YouTube 화면" : "앱 안의 Safari 보안 창")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.white.opacity(0.62))
                     .lineLimit(1)
@@ -213,7 +222,7 @@ struct YouTubeScreen: View {
                 .font(.system(size: 11, weight: .semibold))
                 .padding(.top, 1)
             Text(service == .youtubeMusic
-                 ? "Safari 보안 웹 화면을 앱 안에 전체 화면으로 엽니다. 화면의 ‘완료’를 누르면 이 분할 화면으로 돌아옵니다. 이용 가능 기능은 Google 계정·지역·멤버십 설정에 따릅니다."
+                 ? "앱 안의 Safari 보안 창에서 공식 YouTube Music을 엽니다. 창을 닫으면 분할 화면으로 돌아옵니다. 이용 가능 기능은 Google 계정·지역·멤버십 설정에 따릅니다."
                  : "YouTube 공식 사이트의 재생 버튼, 광고와 콘텐츠 정책을 그대로 사용합니다. Google 로그인이 내장 화면에서 제한될 수 있으며, 앱은 계정 정보를 수집하지 않습니다.")
                 .font(.system(size: 10, weight: .medium))
                 .lineSpacing(2)
@@ -236,13 +245,13 @@ struct YouTubeScreen: View {
                 .shadow(color: .red.opacity(0.22), radius: 18, y: 8)
 
             VStack(spacing: 7) {
-                Text("YouTube Music을 앱 안에서 열기")
+                Text("앱 안에서 YouTube Music 열기")
                     .font(.system(size: 22, weight: .bold, design: .rounded))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .minimumScaleFactor(0.82)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("YouTube Music이 앱 내장 웹 화면을 지원하지 않아 Safari의 보안 웹 화면으로 전체 화면에서 엽니다. 재생 화면을 닫으면 대시보드와 분할 화면으로 돌아옵니다.")
+                Text("이 버튼은 다른 앱으로 이동하지 않고, 앱 안의 Safari 보안 창에서 공식 YouTube Music을 엽니다. 창을 닫으면 이 화면과 분할 화면으로 돌아옵니다.")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.white.opacity(0.65))
                     .multilineTextAlignment(.center)

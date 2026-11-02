@@ -25,14 +25,14 @@ Xcode는 [Apple Developer 다운로드](https://developer.apple.com/download/)�
 
 - Windows 10 또는 11, 64비트
 - Steam에서 설치한 ETS2 1.14 이상
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- [Visual Studio 2022 Build Tools](https://visualstudio.microsoft.com/downloads/) 또는 Visual Studio 2022에 **Desktop development with C++** 구성 요소
-- [CMake](https://cmake.org/download/)
+- 아래의 준비된 Windows ZIP을 받으려면 인터넷 연결
 - Xcode 무선 설치 때는 Mac과 iPad가 같은 Wi-Fi에 있어야 합니다. ETS2 실행 때는 Windows PC와 iPad가 서로 통신할 수 있는 같은 Wi-Fi에 있어야 합니다.
 
-## 1. 프로젝트를 두 컴퓨터에 받기
+Windows에서는 Visual Studio, CMake, .NET SDK를 설치하지 않아도 됩니다. GitHub가 Windows 빌드 컴퓨터에서 브리지와 ETS2 플러그인을 준비해 ZIP으로 제공합니다. Visual Studio만 설치했고 C++ 구성을 선택하지 않았어도 괜찮습니다.
 
-Mac과 Windows PC 각각에서 GitHub 저장소를 복제합니다. [GitHub Desktop](https://desktop.github.com/)을 쓴다면 **File → Clone repository**를 선택하고 `blossom0948/iPadCarPlay`를 고릅니다. 저장 위치는 찾기 쉬운 폴더로 정합니다.
+## 1. 프로젝트를 Mac에 받기
+
+Mac에서 GitHub 저장소를 복제합니다. [GitHub Desktop](https://desktop.github.com/)을 쓴다면 **File → Clone repository**를 선택하고 `blossom0948/iPadCarPlay`를 고릅니다. 저장 위치는 찾기 쉬운 폴더로 정합니다. Windows PC에는 소스 저장소를 복제할 필요가 없습니다. 준비된 브리지 ZIP만 받으면 됩니다.
 
 명령어를 사용하는 경우 다음 주소를 복제합니다.
 
@@ -61,7 +61,9 @@ https://github.com/blossom0948/iPadCarPlay.git
 
 앱은 iPad 전체 화면으로 열립니다. 사진처럼 가로형 화면으로 보고 싶으면 **설정 → 디스플레이 → 화면 비율 → CarPlay 와이드(8:3)**를 선택하세요. 왼쪽 도크의 분할 보기 버튼으로 ETS2 대시보드와 YouTube/YouTube Music을 같이 열고, 가운데 손잡이를 움직여 각 화면 너비를 바꿀 수 있습니다. 다른 앱과 나란히 사용하려면 iPadOS 창 정렬 기능을 이용하세요.
 
-미디어 화면에서 **YouTube**를 선택하면 공식 사이트가 앱 화면에 열립니다. **YouTube Music**은 Google 로그인 보안 정책 때문에 앱 내부 웹 화면에서 직접 로그인하지 않고, 앱이 표시하는 버튼을 눌러 Safari 보안 화면으로 엽니다. 이 화면은 잠시 전체 화면을 차지하며 왼쪽 위 **완료**를 누르면 앱과 분할 화면으로 돌아옵니다. 로그인 정보는 이 앱이 받거나 저장하지 않습니다.
+미디어 화면에서 **YouTube**를 선택하면 공식 사이트가 앱 화면에 열립니다. **YouTube Music**은 화면의 **앱 안에서 YouTube Music 열기**를 누르세요. 앱을 벗어나지 않고 Apple의 보안 브라우저 시트에서 `music.youtube.com`이 열립니다. Google 계정으로 로그인한 뒤 시트의 **완료**를 누르면 앱과 분할 화면으로 돌아옵니다. Google 로그인 정보는 이 앱이 받거나 저장하지 않습니다.
+
+대시보드 위젯에 **Music 앱**의 현재 곡을 보이게 하려면 미디어 접근 권한을 허용하세요. Apple Music 카탈로그나 앱 안에서 재생하는 파일은 바로 표시됩니다. YouTube Music 등 다른 앱의 곡 정보를 가져오는 기능은 iPadOS가 제공하지 않습니다.
 
 이후에도 케이블을 꽂아 둔 채로 빌드·실행할 수 있습니다. iPadOS 27과 Xcode 27에서는 USB로 한 번 연결한 뒤 같은 Wi-Fi에 연결된 상태로 케이블을 빼고 무선 실행도 할 수 있습니다.
 
@@ -80,47 +82,34 @@ https://github.com/blossom0948/iPadCarPlay.git
 
 무선 페어링 메뉴가 없거나 iPad가 검색되지 않으면 Xcode와 iPadOS 버전을 확인하세요. 두 기기를 재시동하고 같은 Wi-Fi에 연결한 뒤 다시 시도합니다. 공유기의 게스트 네트워크나 VPN을 끄고, 그래도 연결되지 않으면 USB 방법으로 한 번 페어링합니다. Apple의 [Device Hub 무선 페어링 안내](https://developer.apple.com/documentation/xcode/managing-your-simulated-and-physical-devices-in-device-hub)를 참고하세요.
 
-## 4. Windows 브리지와 ETS2 플러그인 만들기
+## 4. 준비된 Windows 브리지 받기
 
-Windows에서 저장소 폴더를 열고 `WindowsBridge` 폴더 안에서 PowerShell을 엽니다. GitHub Desktop으로 받은 폴더라면 파일 탐색기 주소창에 `WindowsBridge`를 입력해 폴더로 이동할 수 있습니다.
+1. Windows PC에서 [Windows 설치 묶음 빌드 목록](https://github.com/blossom0948/iPadCarPlay/actions/workflows/build-windows-bundle.yml)을 엽니다. 가장 최근 **Build Windows install bundle** 실행을 선택합니다.
+2. 빌드가 끝나면 초록색 체크 표시를 확인하고 실행 결과 페이지 아래쪽의 **Artifacts → ETS2CarPlay-Windows**를 눌러 ZIP을 받습니다. 회색 진행 표시라면 끝날 때까지 기다립니다. 빨간색 X라면 실행 화면에 나온 오류를 확인합니다.
+3. ZIP 파일을 마우스 오른쪽 버튼으로 눌러 **모두 압축 풀기**를 선택합니다. 앞으로 실행할 때 찾기 쉬운 폴더에 풉니다.
+4. ETS2를 완전히 종료합니다. 압축을 푼 폴더에서 `Install-ETS2Plugin.bat`을 더블클릭합니다. Windows 권한 확인이 나오면 **예**를 누릅니다.
+5. 폴더 선택 창에서 Steam의 ETS2 설치 폴더를 선택합니다. 보통 `C:\Program Files (x86)\Steam\steamapps\common\Euro Truck Simulator 2`이며, 이 폴더 바로 안에 `bin` 폴더가 있어야 합니다. Steam에서 ETS2의 **관리 → 로컬 파일 보기**를 누르면 정확한 폴더를 열 수 있습니다. 성공 메시지가 나오면 플러그인 설치는 끝났습니다.
+6. 다음부터 ETS2를 할 때는 압축을 푼 폴더의 `Start-Bridge.bat`을 더블클릭합니다. 검은색 브리지 창을 열어 둡니다. Windows 방화벽이 표시되면 **개인 네트워크**에만 허용합니다.
 
-PowerShell에서 브리지를 빌드합니다.
+Windows 브리지 창에 표시된 IPv4 주소와 6자리 코드는 다음 단계에서 씁니다. 주소가 여러 개면 iPad와 같은 Wi-Fi의 주소를 사용합니다. `127.0.0.1`은 Windows PC 안에서만 쓰는 주소라 iPad에 입력하지 않습니다. 플러그인 설치는 처음 한 번만 합니다. 매번 ETS2를 할 때는 브리지 창만 새로 열면 됩니다.
+
+### 직접 빌드하고 싶은 경우 (선택 사항)
+
+소스 코드를 직접 수정해 Windows에서 빌드할 개발자만 [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0), [Visual Studio 2022 Build Tools](https://visualstudio.microsoft.com/downloads/)의 **Desktop development with C++**, [CMake](https://cmake.org/download/)를 설치합니다. 일반 설치에는 이 과정이 필요 없습니다. 저장소를 Windows에 내려받은 후 `WindowsBridge` 폴더에서 다음 스크립트를 사용합니다.
 
 ```powershell
-cd "C:\Users\내이름\Documents\GitHub\iPadCarPlay\WindowsBridge"
 .\build-bridge.ps1
-```
-
-PowerShell이 스크립트 실행을 막으면, 같은 PowerShell 창에서 프로세스에 한해 허용한 뒤 빌드 스크립트를 다시 실행합니다.
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\build-bridge.ps1
-```
-
-Steam에서 ETS2를 선택하고 **관리 → 로컬 파일 보기**를 눌러 실제 게임 폴더 위치를 확인합니다. ETS2를 완전히 종료한 상태에서 다음 명령을 실행합니다. 따옴표 안 경로는 본인의 게임 설치 위치로 바꿉니다.
-
-```powershell
 .\build-plugin.ps1 -GameRoot "C:\Program Files (x86)\Steam\steamapps\common\Euro Truck Simulator 2"
+.\run-bridge.ps1
 ```
-
-빌드된 플러그인은 게임 폴더의 `bin\win_x64\plugins\ets2carplay_telemetry.dll`에 복사됩니다. 스크립트가 Visual Studio C++ 또는 CMake를 찾지 못하면 준비물 절을 확인하고 필요한 구성 요소를 설치한 뒤 다시 실행합니다.
 
 ## 5. Windows 브리지 실행과 iPad 연결
 
-1. PowerShell에서 Windows 브리지를 실행합니다.
-
-   ```powershell
-   .\run-bridge.ps1
-   ```
-
-2. Windows 방화벽 안내가 나타나면 **개인 네트워크**에서만 허용합니다. 공용 네트워크에서는 허용하지 않습니다.
-3. 콘솔에서 **PC 주소**로 표시된 Wi-Fi의 IPv4 주소와 **iPad 페어링 코드** 6자리를 확인합니다. 주소가 여러 개면 iPad와 같은 Wi-Fi 네트워크의 주소를 고릅니다. `127.0.0.1`은 PC 내부 주소이므로 iPad에 입력하지 않습니다.
-4. iPad 앱에서 **설정 → ETS2 연결**을 엽니다.
-5. Windows의 IPv4 주소, 포트 `8765`, 6자리 코드를 입력하고 **연결 또는 페어링**을 누릅니다.
-6. iPad에 로컬 네트워크 권한 요청이 나오면 허용합니다.
-7. ETS2를 실행하고 저장된 프로필로 운행을 시작합니다. 연결 상태가 바뀌면 실제 텔레메트리가 표시됩니다.
-8. 운행 중에는 Windows 브리지 콘솔 창을 닫지 않습니다.
+1. iPad와 Windows PC를 같은 Wi-Fi에 연결합니다. 게스트 Wi-Fi는 기기끼리의 연결을 막을 수 있으므로 피합니다.
+2. iPad 앱에서 **설정 → ETS2 연결**을 엽니다.
+3. Windows 브리지 창에 나온 IPv4 주소와 포트 `8765`, 6자리 코드를 입력하고 **연결 또는 페어링**을 누릅니다.
+4. iPad에서 로컬 네트워크 권한을 요청하면 허용합니다.
+5. ETS2를 열어 저장된 프로필로 운행을 시작합니다. 브리지 창은 운행 중 계속 열어 둡니다.
 
 첫 페어링이 성공하면 앱은 토큰을 iPad Keychain에 저장합니다. 이후에는 앱이 같은 PC 주소로 다시 연결하므로 매번 코드를 입력하지 않습니다. 브리지를 다시 시작하면 기존 인증 세션이 초기화되고 새 코드가 발급됩니다. 이때 앱의 **설정 → ETS2 연결 → 페어링 삭제**를 누른 뒤 새 코드로 다시 페어링합니다.
 

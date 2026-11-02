@@ -7,16 +7,25 @@ import UIKit
 struct AppsScreen: View {
     @ObservedObject var layoutStore: AppLayoutStore
     let onSelect: (AppSection) -> Void
-    var preferredColumns = 6
+    var preferredColumns = 4
+    let iconScale: Double
+    let recentSplit: SplitPair?
+    let favoriteSplits: [SplitPair]
+    let isFavorite: (SplitPair) -> Bool
+    let onOpenSplit: (SplitPair) -> Void
+    let onToggleFavorite: (SplitPair) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selectedPage = 0
     @State private var iconsVisible = false
 
     var body: some View {
         GeometryReader { geometry in
-            let columnCount = geometry.size.width < 560 ? 3 : (geometry.size.width < 820 ? 4 : preferredColumns)
+            let columnCount = geometry.size.width < 500 ? 2 : (geometry.size.width < 820 ? 3 : preferredColumns)
             let pageSize = columnCount * 2
-            let iconSize = min(150, geometry.size.width / CGFloat(columnCount) * 0.55, geometry.size.height * 0.23)
+            let hasShortcuts = recentSplit != nil || !favoriteSplits.isEmpty
+            let shortcutHeight = hasShortcuts ? min(112, max(92, geometry.size.height * 0.16)) : 0
+            let gridHeight = max(0, geometry.size.height - shortcutHeight)
+            let iconSize = min(190, geometry.size.width / CGFloat(columnCount) * 0.68, gridHeight * 0.30) * CGFloat(iconScale)
             let rowWidth = geometry.size.width * 0.97
             let rowCenterX = geometry.size.width * 0.495
             let sections = layoutStore.visibleSections
@@ -40,17 +49,17 @@ struct AppsScreen: View {
                                 if !page.prefix(columnCount).isEmpty {
                                     appGridRow(Array(page.prefix(columnCount)), iconSize: iconSize, columnCount: columnCount)
                                         .frame(width: rowWidth)
-                                        .position(x: rowCenterX, y: geometry.size.height * 0.297)
+                                        .position(x: rowCenterX, y: gridHeight * 0.30)
                                 }
 
                                 let secondRow = Array(page.dropFirst(columnCount))
                                 if !secondRow.isEmpty {
                                     appGridRow(secondRow, iconSize: iconSize, columnCount: columnCount)
                                         .frame(width: rowWidth)
-                                        .position(x: rowCenterX, y: geometry.size.height * 0.687)
+                                        .position(x: rowCenterX, y: gridHeight * 0.70)
                                 }
                             }
-                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .frame(width: geometry.size.width, height: gridHeight)
                             .contentShape(Rectangle())
                             .tag(pageIndex)
                         }
@@ -76,7 +85,7 @@ struct AppsScreen: View {
                                         )
                                 }
                             }
-                            .padding(.bottom, geometry.size.height * 0.055)
+                            .padding(.bottom, gridHeight * 0.035)
                             .accessibilityElement(children: .ignore)
                             .accessibilityLabel("앱 페이지 \(selectedPage + 1), 총 \(pages.count)페이지")
                         } else {
@@ -92,9 +101,23 @@ struct AppsScreen: View {
                     }
                     .onAppear { iconsVisible = true }
                     .onDisappear { iconsVisible = false }
+                    .frame(height: gridHeight)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .overlay(alignment: .bottom) {
+                if hasShortcuts {
+                    SplitShortcutRow(
+                        recent: recentSplit,
+                        favorites: favoriteSplits,
+                        isFavorite: isFavorite,
+                        onOpen: onOpenSplit,
+                        onToggleFavorite: onToggleFavorite
+                    )
+                    .frame(height: shortcutHeight)
+                    .padding(.horizontal, 12)
+                }
+            }
         }
     }
 
@@ -141,6 +164,84 @@ struct AppsScreen: View {
             }
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+private struct SplitShortcutRow: View {
+    let recent: SplitPair?
+    let favorites: [SplitPair]
+    let isFavorite: (SplitPair) -> Bool
+    let onOpen: (SplitPair) -> Void
+    let onToggleFavorite: (SplitPair) -> Void
+
+    private var entries: [SplitPair] {
+        (recent.map { [$0] } ?? []) + favorites.filter { $0 != recent }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 7) {
+                Image(systemName: "rectangle.split.2x1")
+                Text("분할 화면")
+                Spacer()
+                Text("최근 · 즐겨찾기")
+                    .foregroundStyle(.white.opacity(0.52))
+            }
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.82))
+
+            ScrollView(.horizontal) {
+                HStack(spacing: 10) {
+                    ForEach(entries) { pair in
+                        HStack(spacing: 0) {
+                            Button { onOpen(pair) } label: {
+                                HStack(spacing: 8) {
+                                    AppIconTile(section: pair.primary)
+                                        .frame(width: 34, height: 34)
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(.white.opacity(0.58))
+                                    AppIconTile(section: pair.media.appSection)
+                                        .frame(width: 34, height: 34)
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(pair == recent ? "최근 분할" : "즐겨찾기")
+                                            .font(.system(size: 10, weight: .semibold))
+                                            .foregroundStyle(.white.opacity(0.54))
+                                        Text(pair.title)
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundStyle(.white)
+                                            .lineLimit(1)
+                                    }
+                                    .frame(maxWidth: 165, alignment: .leading)
+                                }
+                                .padding(.leading, 10)
+                                .padding(.vertical, 7)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(CarPlayPressButtonStyle(pressedScale: 0.98))
+                            .accessibilityLabel("\(pair == recent ? "최근 분할" : "즐겨찾기") 열기: \(pair.title)")
+
+                            Button { onToggleFavorite(pair) } label: {
+                                Image(systemName: isFavorite(pair) ? "star.fill" : "star")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(isFavorite(pair) ? Color.yellow : Color.white.opacity(0.64))
+                                    .frame(width: 42, height: 48)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(CarPlayPressButtonStyle(pressedScale: 0.90))
+                            .accessibilityLabel(isFavorite(pair) ? "분할 즐겨찾기 해제" : "분할 즐겨찾기에 추가")
+                        }
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 17, style: .continuous)
+                                .stroke(Color.white.opacity(0.13), lineWidth: 1)
+                        }
+                    }
+                }
+            }
+            .scrollIndicators(.hidden)
+        }
+        .padding(.vertical, 5)
     }
 }
 

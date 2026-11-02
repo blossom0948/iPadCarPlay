@@ -233,13 +233,55 @@ private struct MusicMiniCard: View {
     @ObservedObject var player: LocalAudioPlayer
     @State private var appleQueue = ApplicationMusicPlayer.shared.queue
     @State private var appleState = ApplicationMusicPlayer.shared.state
+    @StateObject private var systemMusic = SystemMusicNowPlaying()
+    @AppStorage("showSystemMusic") private var showSystemMusic = true
     private let applePlayer = ApplicationMusicPlayer.shared
 
-    private var isAppleMusicActive: Bool { appleQueue.currentEntry != nil }
-    private var isPlaying: Bool {
-        isAppleMusicActive ? appleState.playbackStatus == .playing : player.isPlaying
+    private enum Source { case applicationMusic, systemMusic, localFile, none }
+
+    private var source: Source {
+        if showSystemMusic && systemMusic.isPlaying { return .systemMusic }
+        if appleQueue.currentEntry != nil { return .applicationMusic }
+        if player.currentTrack != nil { return .localFile }
+        if showSystemMusic && systemMusic.title != nil { return .systemMusic }
+        return .none
     }
-    private var hasTrack: Bool { isAppleMusicActive || player.currentTrack != nil }
+
+    private var isAppleMusicActive: Bool { source == .applicationMusic }
+    private var isPlaying: Bool {
+        switch source {
+        case .applicationMusic: appleState.playbackStatus == .playing
+        case .systemMusic: systemMusic.isPlaying
+        case .localFile: player.isPlaying
+        case .none: false
+        }
+    }
+    private var hasTrack: Bool { source != .none }
+
+    private var trackTitle: String {
+        switch source {
+        case .applicationMusic: appleQueue.currentEntry?.title ?? "Apple Music"
+        case .systemMusic: systemMusic.title ?? "Apple Music 앱"
+        case .localFile: player.currentTrack?.title ?? "가져온 오디오 파일"
+        case .none: "음악을 선택하세요"
+        }
+    }
+
+    private var trackArtist: String {
+        switch source {
+        case .applicationMusic: appleQueue.currentEntry?.subtitle ?? "Apple Music"
+        case .systemMusic: systemTrackSubtitle
+        case .localFile: "가져온 오디오 파일"
+        case .none: showSystemMusic && !systemMusic.isAuthorized ? "미디어 접근을 허용해 주세요" : "Apple Music 또는 파일을 선택하세요"
+        }
+    }
+
+    private var systemTrackSubtitle: String {
+        let details = [systemMusic.artist, systemMusic.album]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return details.isEmpty ? "Apple Music 앱" : details.joined(separator: " · ")
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -254,7 +296,12 @@ private struct MusicMiniCard: View {
             }
             HStack(spacing: 13) {
                 Group {
-                    if isAppleMusicActive, let artwork = appleQueue.currentEntry?.artwork {
+                    if source == .systemMusic, let artwork = systemMusic.artwork {
+                        Image(uiImage: artwork)
+                            .resizable()
+                            .scaledToFill()
+                            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                    } else if source == .applicationMusic, let artwork = appleQueue.currentEntry?.artwork {
                         ArtworkImage(artwork, width: 58, height: 58)
                             .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
                     } else {
@@ -265,10 +312,10 @@ private struct MusicMiniCard: View {
                 }
                 .frame(width: 58, height: 58)
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(appleQueue.currentEntry?.title ?? player.currentTrack?.title ?? "음악을 선택하세요")
+                    Text(trackTitle)
                         .font(.system(size: 14, weight: .bold))
                         .lineLimit(1)
-                    Text(isAppleMusicActive ? (appleQueue.currentEntry?.subtitle ?? "Apple Music") : (player.currentTrack == nil ? "Apple Music 또는 파일을 선택하세요" : "가져온 오디오 파일"))
+                    Text(trackArtist)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.white.opacity(0.62))
                 }
@@ -276,11 +323,17 @@ private struct MusicMiniCard: View {
             }
             HStack(spacing: 22) {
                 Button {
-                    if isAppleMusicActive { Task { try? await applePlayer.skipToPreviousEntry() } }
-                    else { player.previous() }
+                    switch source {
+                    case .applicationMusic: Task { try? await applePlayer.skipToPreviousEntry() }
+                    case .systemMusic: systemMusic.skipToPrevious()
+                    case .localFile: player.previous()
+                    case .none: break
+                    }
                 } label: { Image(systemName: "backward.end.fill") }
                 Button {
-                    if isAppleMusicActive {
+                    if source == .systemMusic {
+                        systemMusic.togglePlayback()
+                    } else if isAppleMusicActive {
                         if isPlaying { applePlayer.pause() }
                         else { Task { try? await applePlayer.play() } }
                     } else {
@@ -294,11 +347,15 @@ private struct MusicMiniCard: View {
                 }
                 .disabled(!hasTrack)
                 Button {
-                    if isAppleMusicActive { Task { try? await applePlayer.skipToNextEntry() } }
-                    else { player.next() }
+                    switch source {
+                    case .applicationMusic: Task { try? await applePlayer.skipToNextEntry() }
+                    case .systemMusic: systemMusic.skipToNext()
+                    case .localFile: player.next()
+                    case .none: break
+                    }
                 } label: { Image(systemName: "forward.end.fill") }
                 Spacer()
-                Text(hasTrack ? (isAppleMusicActive ? "Apple Music" : "파일 재생") : "재생 정보 없음")
+                Text(hasTrack ? (source == .systemMusic ? "Music 앱" : (isAppleMusicActive ? "앱 내 Apple Music" : "파일 재생")) : "재생 정보 없음")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.white.opacity(0.56))
             }
@@ -308,6 +365,11 @@ private struct MusicMiniCard: View {
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .dashboardCard(cornerRadius: 24)
+        .task(id: showSystemMusic) {
+            if showSystemMusic { await systemMusic.start() }
+            else { systemMusic.stop() }
+        }
+        .onDisappear { systemMusic.stop() }
     }
 }
 
