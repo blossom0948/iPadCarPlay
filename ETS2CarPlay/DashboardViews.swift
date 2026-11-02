@@ -117,7 +117,7 @@ struct NavigationDataCard: View {
                     Text(snapshot.navigationDistanceKm.map { "\($0.formatted(.number.precision(.fractionLength(0...1)))) km" } ?? "—")
                         .font(.system(size: 43, weight: .bold, design: .rounded))
                         .monospacedDigit()
-                        .contentTransition(.numericText())
+                        .contentTransition(reduceMotion ? .identity : .numericText())
                 }
 
                 Spacer(minLength: 22)

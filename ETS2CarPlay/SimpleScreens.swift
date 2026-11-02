@@ -984,7 +984,7 @@ struct VoiceAssistantScreen: View {
                         .background(assistant.isListening ? .red.opacity(0.75) : .blue.opacity(0.65), in: Circle())
                         .overlay(Circle().stroke(.white.opacity(0.20), lineWidth: 1))
                         .symbolEffect(.pulse, options: .repeating, isActive: assistant.isListening && !reduceMotion)
-                        .contentTransition(.symbolEffect(.replace))
+                        .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
                     Text(assistant.isListening ? "듣는 중 · 누르면 종료" : "눌러서 말하기")
                         .font(.system(size: 15, weight: .semibold))
                 }

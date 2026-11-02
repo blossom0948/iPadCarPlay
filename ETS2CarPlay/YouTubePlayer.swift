@@ -142,7 +142,7 @@ struct YouTubeScreen: View {
                 .foregroundStyle(service == .youtube ? Color.red : Color(red: 1, green: 0.28, blue: 0.32))
                 .frame(width: 42, height: 42)
                 .background(Color.white.opacity(0.11), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .contentTransition(.symbolEffect(.replace))
+                .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(service.title)
