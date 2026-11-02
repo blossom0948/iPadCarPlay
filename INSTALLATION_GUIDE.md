@@ -92,7 +92,7 @@ https://github.com/blossom0948/iPadCarPlay.git
 
 ## 4. 준비된 Windows 브리지 받기
 
-1. Windows PC에서 [Windows 설치 묶음 빌드 목록](https://github.com/blossom0948/iPadCarPlay/actions/workflows/build-windows-bundle.yml)을 엽니다. 가장 최근 **Build Windows install bundle** 실행을 선택합니다.
+1. 인터넷이 되는 기기에서 [Windows 설치 묶음 빌드 목록](https://github.com/blossom0948/iPadCarPlay/actions/workflows/build-windows-bundle.yml)을 엽니다. 가장 최근 **Build Windows install bundle** 실행을 선택합니다. Windows PC가 오프라인이면 Mac에서 ZIP을 받은 뒤 USB 메모리로 옮깁니다.
 2. 빌드가 끝나면 초록색 체크 표시를 확인하고 실행 결과 페이지 아래쪽의 **Artifacts → ETS2CarPlay-Windows**를 눌러 ZIP을 받습니다. 회색 진행 표시라면 끝날 때까지 기다립니다. 빨간색 X라면 실행 화면에 나온 오류를 확인합니다.
 3. ZIP 파일을 마우스 오른쪽 버튼으로 눌러 **모두 압축 풀기**를 선택합니다.
 4. ETS2와 실행 중인 브리지 창을 닫고 압축을 푼 폴더의 **`Setup-ETS2CarPlay.bat`**을 두 번 누릅니다. 기본 Steam 위치에서 게임을 찾으면 확인을 누릅니다. 찾지 못하면 폴더 선택 창에서 Steam의 Euro Truck Simulator 2 폴더를 고릅니다. 이 폴더 바로 안에 `bin\win_x64`가 있어야 합니다. 이후 업데이트할 때도 실행 중인 ETS2와 브리지를 먼저 닫습니다.
