@@ -18,7 +18,16 @@ struct DashboardScreen: View {
 
     var body: some View {
         GeometryReader { geometry in
-            if geometry.size.width < 720 {
+            if geometry.size.height < 500 {
+                HStack(spacing: 12) {
+                    NavigationDataCard(snapshot: snapshot, gameState: bridge.gameState)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    MusicMiniCard(player: model.audio)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    TruckTelemetryCard(snapshot: snapshot, speedUnit: speedUnit)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            } else if geometry.size.width < 720 {
                 ScrollView(.vertical) {
                     VStack(spacing: 12) {
                         NavigationDataCard(snapshot: snapshot, gameState: bridge.gameState)
@@ -54,6 +63,7 @@ struct DashboardScreen: View {
 struct NavigationDataCard: View {
     let snapshot: TelemetrySnapshot?
     let gameState: GameConnectionState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -63,13 +73,24 @@ struct NavigationDataCard: View {
                     .foregroundStyle(.white.opacity(0.92))
                 Spacer()
                 HStack(spacing: 7) {
-                    Circle()
-                        .fill(gameState == .live ? Color.green : Color.orange)
-                        .frame(width: 8, height: 8)
+                    Image(systemName: "circle.fill")
+                        .font(.system(size: 8))
+                        .foregroundStyle(gameState == .live ? Color.green : Color.orange)
+                        .symbolEffect(.pulse, options: .repeating, isActive: gameState == .live && !reduceMotion)
                     Text(gameState.label)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.74))
+                        .foregroundStyle(.white.opacity(0.88))
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background {
+                    if #available(iOS 26.0, *) {
+                        Color.clear.glassEffect(.regular, in: Capsule())
+                    } else {
+                        Capsule().fill(Color.white.opacity(0.10))
+                    }
+                }
+                .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 1))
             }
 
             if let snapshot {
@@ -195,6 +216,22 @@ struct TruckTelemetryCard: View {
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.white.opacity(0.55))
             }
+            FuelRouteInsight(snapshot: snapshot)
+            HStack(spacing: 9) {
+                DriveCountdownInsight(
+                    title: "휴식까지",
+                    minutes: [snapshot?.nextMandatoryBreakMinutes, snapshot?.nextRestStopMinutes]
+                        .compactMap { $0 }
+                        .filter { $0 >= 0 }
+                        .min(),
+                    emptyText: "미사용"
+                )
+                DriveCountdownInsight(
+                    title: "배송 마감",
+                    minutes: snapshot?.minutesUntilDeliveryDeadline,
+                    emptyText: "정보 없음"
+                )
+            }
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -205,6 +242,113 @@ struct TruckTelemetryCard: View {
         guard let snapshot else { return "—" }
         let speed = speedUnit == "mph" ? snapshot.speedMph : snapshot.speedKph
         return speed.map { String(Int(abs($0).rounded())) } ?? "—"
+    }
+}
+
+private struct FuelRouteInsight: View {
+    let snapshot: TelemetrySnapshot?
+    @AppStorage("alerts.routeFuel.margin") private var cautionMarginKm = 30.0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var rangeKm: Double? { snapshot?.fuelRangeKm }
+    private var destinationKm: Double? { snapshot?.navigationDistanceKm }
+    private var marginKm: Double? {
+        guard let rangeKm, let destinationKm else { return nil }
+        return rangeKm - destinationKm
+    }
+    private var accent: Color {
+        guard let marginKm else { return .white.opacity(0.72) }
+        if marginKm < 0 { return .red }
+        return marginKm <= cautionMarginKm ? .orange : .green
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "fuelpump.fill")
+                    .foregroundStyle(accent)
+                Text("목적지 연료 여유")
+                    .foregroundStyle(.white.opacity(0.72))
+                Spacer(minLength: 4)
+                Text(statusText)
+                    .fontWeight(.bold)
+                    .foregroundStyle(accent)
+                    .contentTransition(reduceMotion ? .identity : .numericText())
+            }
+            .font(.system(size: 11, weight: .medium))
+
+            GeometryReader { geometry in
+                let progress = min(max((destinationKm ?? 0) / max(rangeKm ?? 1, 1), 0), 1)
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.13))
+                    Capsule()
+                        .fill(accent.gradient)
+                        .frame(width: max(5, geometry.size.width * progress))
+                }
+            }
+            .frame(height: 5)
+
+            Text(detailText)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.white.opacity(0.56))
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.white.opacity(0.065), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var statusText: String {
+        guard let marginKm else { return "대기" }
+        if marginKm < 0 { return "주유 필요" }
+        return "+\(Int(marginKm.rounded())) km"
+    }
+
+    private var detailText: String {
+        guard let rangeKm, let destinationKm else { return "ETS2 주행 데이터 연결 후 표시됩니다." }
+        return "주행 가능 \(Int(rangeKm.rounded())) km · 목적지까지 \(Int(destinationKm.rounded())) km"
+    }
+}
+
+private struct DriveCountdownInsight: View {
+    let title: String
+    let minutes: Int?
+    let emptyText: String
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.white.opacity(0.56))
+            Text(value)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .contentTransition(reduceMotion ? .identity : .numericText())
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(Color.white.opacity(0.065), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var value: String {
+        guard let minutes else { return emptyText }
+        if title == "배송 마감", minutes < 0 { return "기한 초과 \(formatGameMinutes(-minutes))" }
+        if minutes == 0 { return title == "휴식까지" ? "지금 휴식" : "마감 시각" }
+        return formatGameMinutes(minutes)
+    }
+
+    private func formatGameMinutes(_ minutes: Int) -> String {
+        let hours = minutes / 60
+        let remainder = minutes % 60
+        if hours == 0 { return "\(remainder)분" }
+        return remainder == 0 ? "\(hours)시간" : "\(hours)시간 \(remainder)분"
     }
 }
 

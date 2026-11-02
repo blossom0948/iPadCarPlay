@@ -40,6 +40,17 @@ jobs:
           cmake --build WindowsBridge/build/TelemetryPlugin --config Release
           if ($LASTEXITCODE -ne 0) { throw "The telemetry plugin did not build." }
 
+      - name: Check Windows setup scripts parse
+        shell: pwsh
+        run: |
+          $files = @("WindowsBridge/Setup-ETS2CarPlay.ps1", "WindowsBridge/Install-ETS2Plugin.ps1")
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $env:GITHUB_WORKSPACE $file), [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) { throw ($errors | Out-String) }
+          }
+
       - name: Assemble ready-to-run Windows bundle
         shell: pwsh
         run: |
@@ -50,7 +61,10 @@ jobs:
           Copy-Item "WindowsBridge/build/TelemetryPlugin/Release/ets2carplay_telemetry.dll" $bundle
           Copy-Item "WindowsBridge/Install-ETS2Plugin.ps1" $bundle
           Copy-Item "WindowsBridge/Install-ETS2Plugin.bat" $bundle
+          Copy-Item "WindowsBridge/Setup-ETS2CarPlay.ps1" $bundle
+          Copy-Item "WindowsBridge/Setup-ETS2CarPlay.bat" $bundle
           Copy-Item "WindowsBridge/Start-Bridge.bat" $bundle
+          Copy-Item "WindowsBridge/Reset-Pairing.bat" $bundle
           Copy-Item "WindowsBridge/README-WINDOWS-QUICK-START.txt" (Join-Path $bundle "README-FIRST.txt")
 
       - name: Upload ready-to-run bundle

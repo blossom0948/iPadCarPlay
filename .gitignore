@@ -1,5 +1,8 @@
 .DS_Store
 DerivedData/
+**/xcuserdata/
+**/*.xcuserstate
+**/project.xcworkspace/contents.xcworkspacedata
 WindowsBridge/**/bin/
 WindowsBridge/**/obj/
 WindowsBridge/build/

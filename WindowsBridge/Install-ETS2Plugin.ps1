@@ -45,7 +45,8 @@ if (-not $isAdministrator -and -not $Elevated) {
     $quotedRoot = '"' + $GameRoot + '"'
     $arguments = "-NoProfile -ExecutionPolicy Bypass -File $quotedScript -GameRoot $quotedRoot -Elevated"
     try {
-        Start-Process -FilePath "powershell.exe" -Verb RunAs -ArgumentList $arguments -Wait
+        $child = Start-Process -FilePath "powershell.exe" -Verb RunAs -ArgumentList $arguments -Wait -PassThru
+        if ($child.ExitCode -ne 0) { exit $child.ExitCode }
     } catch {
         [System.Windows.Forms.MessageBox]::Show(
             "관리자 권한을 허용하지 않아 플러그인을 설치하지 않았습니다. 다시 실행하고 Windows 권한 안내에서 예를 누르세요.",
@@ -62,7 +63,7 @@ try {
     New-Item -ItemType Directory -Force -Path $pluginDirectory | Out-Null
     Copy-Item -Force $pluginSource (Join-Path $pluginDirectory "ets2carplay_telemetry.dll")
     [System.Windows.Forms.MessageBox]::Show(
-        "ETS2 플러그인 설치가 끝났습니다. 다음부터는 Windows 묶음의 Start-Bridge.bat을 실행하세요.",
+        "ETS2 플러그인 설치가 끝났습니다. 브리지 실행 바로 가기는 설치 과정 마지막에 만들어집니다.",
         "설치 완료",
         [System.Windows.Forms.MessageBoxButtons]::OK,
         [System.Windows.Forms.MessageBoxIcon]::Information

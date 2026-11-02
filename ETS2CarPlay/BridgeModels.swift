@@ -34,6 +34,10 @@ struct TelemetrySnapshot: Codable, Equatable, Identifiable {
     let sourceCity: String?
     let destinationCity: String?
     let destinationCompany: String?
+    let nextRestStopMinutes: Int?
+    let nextMandatoryBreakMinutes: Int?
+    let gameTimeMinutes: UInt32?
+    let deliveryDeadlineGameMinutes: UInt32?
 
     var speedKph: Double? { speedMps.map { $0 * 3.6 } }
     var speedMph: Double? { speedMps.map { $0 * 2.2369362921 } }
@@ -43,6 +47,10 @@ struct TelemetrySnapshot: Codable, Equatable, Identifiable {
         return min(max(fuelLiters / capacity * 100, 0), 100)
     }
     var navigationDistanceKm: Double? { navigationDistanceMeters.map { $0 / 1_000 } }
+    var minutesUntilDeliveryDeadline: Int? {
+        guard let gameTimeMinutes, let deliveryDeadlineGameMinutes else { return nil }
+        return Int(deliveryDeadlineGameMinutes) - Int(gameTimeMinutes)
+    }
 }
 
 struct GameEvent: Codable, Equatable, Identifiable {

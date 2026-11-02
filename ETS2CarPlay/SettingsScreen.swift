@@ -500,6 +500,12 @@ private struct AlertSettingsView: View {
     @AppStorage("alerts.fuel.enabled") private var fuelEnabled = true
     @AppStorage("alerts.speed.enabled") private var speedEnabled = true
     @AppStorage("alerts.wear.enabled") private var wearEnabled = true
+    @AppStorage("alerts.routeFuel.enabled") private var routeFuelEnabled = true
+    @AppStorage("alerts.routeFuel.margin") private var routeFuelMargin = 30.0
+    @AppStorage("alerts.rest.enabled") private var restEnabled = true
+    @AppStorage("alerts.rest.threshold") private var restThreshold = 120.0
+    @AppStorage("alerts.deadline.enabled") private var deadlineEnabled = true
+    @AppStorage("alerts.deadline.threshold") private var deadlineThreshold = 120.0
     @AppStorage("alerts.fuel.threshold") private var fuelThreshold = 15.0
     @AppStorage("alerts.speed.tolerance") private var speedTolerance = 5.0
     @State private var systemAlertMessage: String?
@@ -545,6 +551,36 @@ private struct AlertSettingsView: View {
                     }
                     Slider(value: $fuelThreshold, in: 5...40, step: 1)
                 }
+                Toggle("목적지 전 주유 확인", isOn: $routeFuelEnabled)
+                if routeFuelEnabled {
+                    HStack {
+                        Text("도착 예상 여유가 다음보다 적으면 알림")
+                        Spacer()
+                        Text("\(Int(routeFuelMargin)) km")
+                            .monospacedDigit()
+                    }
+                    Slider(value: $routeFuelMargin, in: 0...100, step: 5)
+                }
+                Toggle("휴식 시간 알림", isOn: $restEnabled)
+                if restEnabled {
+                    HStack {
+                        Text("게임 시간 기준 남은 시간")
+                        Spacer()
+                        Text("\(Int(restThreshold))분")
+                            .monospacedDigit()
+                    }
+                    Slider(value: $restThreshold, in: 30...240, step: 15)
+                }
+                Toggle("배송 마감 알림", isOn: $deadlineEnabled)
+                if deadlineEnabled {
+                    HStack {
+                        Text("게임 시간 기준 남은 시간")
+                        Spacer()
+                        Text("\(Int(deadlineThreshold))분")
+                            .monospacedDigit()
+                    }
+                    Slider(value: $deadlineThreshold, in: 30...240, step: 15)
+                }
                 Toggle("제한 속도 초과", isOn: $speedEnabled)
                 if speedEnabled {
                     HStack {
@@ -558,7 +594,7 @@ private struct AlertSettingsView: View {
                 Toggle("차량 손상", isOn: $wearEnabled)
             }
             Section {
-                Text("경보는 ETS2가 제공하는 실제 텔레메트리 값으로 생성됩니다.")
+                Text("연료 주행 가능 거리, 휴식 시간, 배송 마감은 ETS2 실제 텔레메트리로 계산합니다. 휴식 알림은 게임에서 피로도 또는 필수 휴식을 켰을 때 표시됩니다. 휴식과 배송 시간은 게임 내 분 단위입니다.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }

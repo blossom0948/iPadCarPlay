@@ -190,6 +190,33 @@ final class AppModel: ObservableObject {
             let unit = UserDefaults.standard.string(forKey: "speedUnit") ?? "km/h"
             return "현재 속도는 \(Int(abs(value).rounded())) \(unit)입니다."
         }
+        if command.contains("주유") || command.contains("연료 여유") || command.contains("연료로") {
+            guard let snapshot else { return "ETS2 주행 데이터가 연결되지 않았습니다." }
+            guard let range = snapshot.fuelRangeKm else { return "남은 연료로 갈 수 있는 거리를 받을 수 없습니다." }
+            if let distance = snapshot.navigationDistanceKm {
+                let margin = range - distance
+                if margin < 0 {
+                    return "연료 주행 가능 거리는 약 \(Int(range.rounded()))킬로미터이고 목적지까지 \(Int(distance.rounded()))킬로미터 남았습니다. 목적지 전에 주유가 필요합니다."
+                }
+                return "연료 주행 가능 거리는 약 \(Int(range.rounded()))킬로미터입니다. 목적지 도착 후 약 \(Int(margin.rounded()))킬로미터 여유가 예상됩니다."
+            }
+            return "현재 연료로 약 \(Int(range.rounded()))킬로미터 주행할 수 있습니다."
+        }
+        if command.contains("휴식") || command.contains("피로") || command.contains("휴게") {
+            guard let snapshot else { return "ETS2 주행 데이터가 연결되지 않았습니다." }
+            let remaining = [snapshot.nextMandatoryBreakMinutes, snapshot.nextRestStopMinutes]
+                .compactMap { $0 }
+                .filter { $0 >= 0 }
+                .min()
+            guard let remaining else { return "휴식 예정 정보가 없습니다. 게임 설정에서 피로도 또는 필수 휴식을 켜 주세요." }
+            return remaining == 0 ? "게임에서 휴식이 필요합니다." : "게임 시간 기준 약 \(remaining)분 뒤 휴식이 필요합니다."
+        }
+        if command.contains("마감") || command.contains("배송 시간") || command.contains("늦") {
+            guard let remaining = snapshot?.minutesUntilDeliveryDeadline else { return "현재 배송 마감 정보가 없습니다." }
+            return remaining >= 0
+                ? "배송 마감까지 게임 시간 기준 \(remaining)분 남았습니다."
+                : "배송 기한이 게임 시간 기준 \(-remaining)분 지났습니다."
+        }
         if command.contains("연료") {
             guard let fuel = snapshot?.fuelLiters else { return "현재 연료 정보를 받을 수 없습니다." }
             return "연료가 \(fuel.formatted(.number.precision(.fractionLength(0...1))))리터 남았습니다."
@@ -237,7 +264,7 @@ final class AppModel: ObservableObject {
             let (_, result) = await bridge.sendCommand("lights.toggle")
             return result
         }
-        return "속도, 연료, 목적지, 남은 거리, 알림 읽기, 음악 재생, 경적, 라이트를 요청할 수 있습니다."
+        return "속도, 연료와 주유 여유, 목적지, 배송 마감, 휴식까지 남은 시간, 알림 읽기, 음악 재생, 경적, 라이트를 요청할 수 있습니다."
     }
 
     func receive(_ snapshot: TelemetrySnapshot) {
@@ -251,9 +278,48 @@ final class AppModel: ObservableObject {
         let speedTolerance = UserDefaults.standard.object(forKey: "alerts.speed.tolerance") as? Double ?? 5
         if let fuel = snapshot.fuelPercent, fuel <= fuelThreshold,
            UserDefaults.standard.object(forKey: "alerts.fuel.enabled") as? Bool != false {
-            addThresholdAlert(key: "fuel", title: "연료 부족", detail: "연료가 \(Int(fuel.rounded()))% 남았습니다.", level: fuel <= 7 ? .urgent : .warning)
+            if fuel <= 7 {
+                activeAlertKeys.remove("fuel.warning")
+                addThresholdAlert(key: "fuel.urgent", title: "연료가 매우 부족합니다", detail: "연료가 \(Int(fuel.rounded()))% 남았습니다.", level: .urgent)
+            } else if !activeAlertKeys.contains("fuel.urgent") {
+                addThresholdAlert(key: "fuel.warning", title: "연료 부족", detail: "연료가 \(Int(fuel.rounded()))% 남았습니다.", level: .warning)
+            }
         } else {
-            activeAlertKeys.remove("fuel")
+            activeAlertKeys.remove("fuel.warning")
+            activeAlertKeys.remove("fuel.urgent")
+        }
+
+        let routeFuelMarginKm: Double? = {
+            guard let range = snapshot.fuelRangeKm, let distance = snapshot.navigationDistanceKm else { return nil }
+            return range - distance
+        }()
+        if let margin = routeFuelMarginKm,
+           UserDefaults.standard.object(forKey: "alerts.routeFuel.enabled") as? Bool != false {
+            let cautionMargin = UserDefaults.standard.object(forKey: "alerts.routeFuel.margin") as? Double ?? 30
+            if margin < 0 {
+                activeAlertKeys.remove("routeFuel.warning")
+                addThresholdAlert(
+                    key: "routeFuel.urgent",
+                    title: "목적지 전 주유 필요",
+                    detail: "현재 연료 예상 주행거리가 목적지까지 남은 거리보다 짧습니다.",
+                    level: .urgent
+                )
+            } else if margin <= cautionMargin, !activeAlertKeys.contains("routeFuel.urgent") {
+                addThresholdAlert(
+                    key: "routeFuel.warning",
+                    title: "연료 여유가 적습니다",
+                    detail: "목적지 도착 후 예상 여유 거리는 약 \(Int(margin.rounded())) km입니다.",
+                    level: .warning
+                )
+            } else {
+                if margin > cautionMargin {
+                    activeAlertKeys.remove("routeFuel.warning")
+                    activeAlertKeys.remove("routeFuel.urgent")
+                }
+            }
+        } else {
+            activeAlertKeys.remove("routeFuel.warning")
+            activeAlertKeys.remove("routeFuel.urgent")
         }
 
         if let speed = snapshot.speedKph, let limit = snapshot.speedLimitKph, speed > limit + speedTolerance,
@@ -267,9 +333,65 @@ final class AppModel: ObservableObject {
             .compactMap { $0 }.max()
         if let wear = highestWear, wear >= 0.12,
            UserDefaults.standard.object(forKey: "alerts.wear.enabled") as? Bool != false {
-            addThresholdAlert(key: "wear", title: "차량 정비 확인", detail: "차량 손상도가 \(Int((wear * 100).rounded()))%입니다.", level: wear >= 0.25 ? .urgent : .warning)
+            if wear >= 0.25 {
+                activeAlertKeys.remove("wear.warning")
+                addThresholdAlert(key: "wear.urgent", title: "차량 정비가 필요합니다", detail: "차량 손상도가 \(Int((wear * 100).rounded()))%입니다.", level: .urgent)
+            } else if !activeAlertKeys.contains("wear.urgent") {
+                addThresholdAlert(key: "wear.warning", title: "차량 정비 확인", detail: "차량 손상도가 \(Int((wear * 100).rounded()))%입니다.", level: .warning)
+            }
         } else {
-            activeAlertKeys.remove("wear")
+            activeAlertKeys.remove("wear.warning")
+            activeAlertKeys.remove("wear.urgent")
+        }
+
+        let restThreshold = UserDefaults.standard.object(forKey: "alerts.rest.threshold") as? Double ?? 120
+        let remainingRestMinutes = [snapshot.nextMandatoryBreakMinutes, snapshot.nextRestStopMinutes]
+            .compactMap { $0 }
+            .filter { $0 >= 0 }
+            .min()
+        if let remainingRestMinutes,
+           UserDefaults.standard.object(forKey: "alerts.rest.enabled") as? Bool != false,
+           Double(remainingRestMinutes) <= restThreshold {
+            let isUrgent = remainingRestMinutes <= 30
+            if isUrgent {
+                activeAlertKeys.remove("rest.warning")
+            }
+            if isUrgent || !activeAlertKeys.contains("rest.urgent") {
+                addThresholdAlert(
+                    key: isUrgent ? "rest.urgent" : "rest.warning",
+                    title: remainingRestMinutes == 0 ? "게임에서 휴식이 필요합니다" : (isUrgent ? "휴식 시간이 임박했습니다" : "휴식 시간이 가까워졌습니다"),
+                    detail: remainingRestMinutes == 0
+                        ? "안전한 장소에 정차해 게임 내 휴식을 진행하세요."
+                        : "게임 시간 기준 약 \(remainingRestMinutes)분 뒤 휴식이 필요합니다.",
+                    level: isUrgent ? .urgent : .warning
+                )
+            }
+        } else {
+            activeAlertKeys.remove("rest.warning")
+            activeAlertKeys.remove("rest.urgent")
+        }
+
+        let deadlineThreshold = UserDefaults.standard.object(forKey: "alerts.deadline.threshold") as? Double ?? 120
+        if let remaining = snapshot.minutesUntilDeliveryDeadline,
+           UserDefaults.standard.object(forKey: "alerts.deadline.enabled") as? Bool != false,
+           Double(remaining) <= deadlineThreshold {
+            let isUrgent = remaining <= 30
+            if isUrgent {
+                activeAlertKeys.remove("deadline.warning")
+            }
+            if isUrgent || !activeAlertKeys.contains("deadline.urgent") {
+                addThresholdAlert(
+                    key: isUrgent ? "deadline.urgent" : "deadline.warning",
+                    title: remaining < 0 ? "배송 기한을 넘겼습니다" : (isUrgent ? "배송 마감이 임박했습니다" : "배송 마감이 가까워졌습니다"),
+                    detail: remaining < 0
+                        ? "게임 시간 기준 \(-remaining)분 지났습니다."
+                        : "배송 마감까지 게임 시간 기준 \(remaining)분 남았습니다.",
+                    level: isUrgent ? .urgent : .warning
+                )
+            }
+        } else {
+            activeAlertKeys.remove("deadline.warning")
+            activeAlertKeys.remove("deadline.urgent")
         }
     }
 

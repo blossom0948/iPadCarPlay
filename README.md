@@ -8,8 +8,10 @@ iPad에서 실행하는 ETS2 대시보드입니다. iPad Air와 iPadOS 27을 대
 ## 포함 기능
 
 - ETS2 속도, RPM, 기어, 연료, 제한 속도, 남은 거리와 ETA를 실시간 표시
+- 현재 연료 주행거리와 목적지 거리를 비교해 도착 가능 여부와 주유 시점을 표시
+- ETS2 게임 시간 기준 다음 휴식과 배송 마감 카운트다운·조기 경보
 - 목적지, 배송, 벌금, 통행료 이벤트 수신
-- 연료 부족, 제한 속도 초과, 차량 손상 알림
+- 연료 부족, 경로 연료 부족, 휴식·배송 마감, 제한 속도 초과, 차량 손상 알림
 - Windows PC 페어링, 재연결, 상태 확인
 - ETS2 창이 활성화된 동안 키 입력을 전달하는 원격 조작
 - SwiftData 운행 기록, 누적 거리·연료·속도·게임 이벤트 기록, CSV 내보내기
@@ -45,7 +47,7 @@ Windows Bridge (.NET WebSocket server, port 8765)
 iPad app (SwiftUI)
 ```
 
-SCS SDK 1.16 헤더와 MIT 라이선스 전문은 `WindowsBridge/SCS_SDK`에 포함했습니다. 플러그인은 게임에서 공식 텔레메트리 값을 읽고 Windows 브리지에 로컬 UDP로 전달합니다. iPad 연결은 6자리 페어링 코드로 시작하고, 이후 발급된 토큰은 iPad Keychain에 저장합니다.
+SCS SDK 1.16 헤더와 MIT 라이선스 전문은 `WindowsBridge/SCS_SDK`에 포함했습니다. 플러그인은 게임에서 공식 텔레메트리 값을 읽고 Windows 브리지에 로컬 UDP로 전달합니다. iPad 첫 연결은 6자리 코드로 페어링합니다. 이후 토큰은 iPad Keychain과 Windows의 사용자 앱 데이터 폴더에 저장되어 브리지를 껐다 켜도 자동으로 재연결됩니다.
 
 ## Mac에서 iPad 앱 설치
 
@@ -54,9 +56,11 @@ SCS SDK 1.16 헤더와 MIT 라이선스 전문은 `WindowsBridge/SCS_SDK`에 포
 
 두 방법의 단계별 안내, Apple 계정 서명, Developer Mode, Windows 브리지 설치는 [초보자 설치·연동 안내](INSTALLATION_GUIDE.md)에 정리했습니다. 프로젝트의 최소 배포 버전은 iPadOS 17입니다. Apple은 Xcode 27에서 iPadOS 27 이상 기기의 무선 페어링을 지원합니다. [Xcode 27 릴리스 노트](https://developer.apple.com/documentation/xcode-release-notes/xcode-27-release-notes) · [Device Hub 페어링 안내](https://developer.apple.com/documentation/xcode/managing-your-simulated-and-physical-devices-in-device-hub)
 
+Mac에 저장소를 받은 뒤에는 `Install-iPad.command`를 두 번 눌러 빌드와 연결된 iPad 설치를 한 번에 할 수 있습니다. 처음 한 번은 Xcode에서 Apple 계정과 Team 서명을 설정하고 iPad를 잠금 해제해 두어야 합니다. iPad 단독으로 임의의 개발용 앱을 설치할 수는 없으며 Apple의 코드 서명 절차가 필요합니다.
+
 ### 이번 화면 개편 빌드 확인
 
-Xcode 27.2에서 앱 **1.4.0 (빌드 12)**을 빌드해 iPad Air 4세대(iPadOS 27.0.1)에 설치했습니다. 빌드 12에는 iPad 키보드가 나타나지 않아도 IP 주소와 페어링 코드를 입력할 수 있는 앱 내 숫자판을 추가했습니다. Windows PC의 ETS2 텔레메트리 브리지와 게임 플러그인은 별도 Windows 환경에서 연결 확인이 필요하므로, 이 문서만으로 ETS2 실시간 연동까지 검증됐다는 뜻은 아닙니다.
+Xcode 27.2의 iPad 시뮬레이터용 **1.5.0 (빌드 13)** 빌드가 통과했습니다. 이 버전에는 목적지 전 연료 판단, 게임 시간 기준 휴식·배송 마감 정보, 애니메이션 상태 피드백과 Mac 원클릭 설치 명령이 포함됩니다. 현재 Mac의 Xcode 자동 서명 팀 계정 문제로 이 새 빌드를 실제 iPad에 설치하지 못했고, 시뮬레이터 화면도 실행 확인하지 못했습니다. 새 iPad 설치 전에 Xcode에서 Apple 계정을 로그인하고 본인 Team을 한 번 선택해야 합니다. Windows 설치 묶음은 GitHub Actions에서 별도로 빌드되며, Windows ETS2 운행은 실제 게임 PC에서 별도 확인이 필요합니다.
 
 ## 앱 업데이트
 
@@ -84,15 +88,17 @@ PC에 랜선 단자가 없으면 USB Wi-Fi 어댑터를 사용해 같은 Wi-Fi�
 
 Visual Studio C++ 구성 요소, CMake, .NET SDK를 Windows에 설치할 필요가 없습니다. GitHub가 Windows 가상 컴퓨터에서 브리지와 ETS2 플러그인을 미리 빌드합니다.
 
+Windows PC에서 인터넷을 쓸 수 없다면 Mac이나 인터넷이 되는 다른 기기에서 아래 Windows ZIP을 내려받아 USB 메모리로 옮기면 됩니다. PC에서는 압축을 풀고 설치만 하면 됩니다. ETS2를 실행할 때의 연결은 인터넷을 쓰지 않습니다. Windows PC를 공유기에 랜선으로 연결하고 iPad를 같은 공유기의 Wi-Fi에 연결하면 됩니다.
+
 1. [저장소의 Actions 빌드 목록](https://github.com/blossom0948/iPadCarPlay/actions/workflows/build-windows-bundle.yml)을 엽니다.
 2. 가장 최근의 **Build Windows install bundle** 실행을 누르고, 완료 표시(초록색 체크)가 있는지 확인합니다.
 3. 해당 실행 화면 아래 **Artifacts**에서 `ETS2CarPlay-Windows`를 내려받아 압축을 풉니다. 압축 안의 `README-FIRST.txt`도 참고할 수 있습니다.
-4. ETS2를 완전히 종료하고 `Install-ETS2Plugin.bat`을 더블클릭합니다. Windows 권한 확인이 나오면 허용하고, `bin` 폴더가 들어 있는 Euro Truck Simulator 2 게임 폴더를 선택합니다. Steam에서는 ETS2의 **관리 → 로컬 파일 보기**로 게임 폴더를 찾을 수 있습니다. 이 작업은 처음 한 번만 합니다.
-5. 매번 ETS2를 할 때 `Start-Bridge.bat`을 더블클릭하고 창을 열어 둡니다. Windows 방화벽이 묻는 경우 **개인 네트워크에서만 허용**합니다.
+4. ETS2와 실행 중인 브리지 창을 닫고 `Setup-ETS2CarPlay.bat`을 두 번 누릅니다. 기본 Steam 위치에서 ETS2를 찾으면 확인만 누르고, 다른 폴더에 설치했다면 게임 폴더를 선택합니다. Windows 권한 확인에서 **예**를 누릅니다. 설치가 끝나면 바탕 화면에 **ETS2 CarPlay 브리지** 바로 가기가 생깁니다. 업데이트할 때도 먼저 ETS2와 브리지 창을 닫습니다.
+5. 매번 ETS2를 할 때 바탕 화면의 **ETS2 CarPlay 브리지**를 두 번 누르고 검은 창을 열어 둡니다. Windows 방화벽이 묻는 경우 **개인 네트워크에서만 허용**합니다. 첫 실행에만 표시되는 코드를 iPad에 입력하면 이후 브리지 재시작은 자동 재연결됩니다.
 6. iPad와 Windows PC가 같은 공유기 네트워크에 있는지 확인합니다. 앱에서 **설정 → ETS2 연결**을 열고 **Windows PC 주소** 행을 눌러 앱 안 숫자판에 브리지 창의 IPv4 주소를 입력합니다. 포트는 `8765` 그대로 둡니다. **6자리 페어링 코드** 행을 눌러 코드를 입력하고 **연결 또는 페어링**을 누릅니다. iPad 키보드가 표시되지 않아도 앱 안 숫자판으로 입력할 수 있습니다. `127.0.0.1`은 입력하지 않습니다.
 7. ETS2를 실행하고 저장된 프로필을 불러와 운행을 시작합니다. 브리지 창은 운행 중 계속 열어 둡니다.
 
-한 번 페어링하면 iPad가 인증 토큰을 저장합니다. 브리지를 재시작한 뒤 연결이 거부되면 iPad 설정에서 페어링을 삭제하고 Windows 창에 새로 표시된 코드로 다시 연결하세요.
+연결을 처음부터 다시 설정해야 하면 Windows 시작 메뉴의 **ETS2 CarPlay 페어링 복구**를 실행하고, 새 코드로 iPad에서 다시 연결하세요. PC와 iPad는 같은 공유기 네트워크에 있어야 합니다. Windows가 인터넷에 연결되지 않아도 PC를 공유기에 랜선으로 연결하면 됩니다.
 
 ### 직접 빌드하는 방법 (선택 사항)
 
@@ -101,12 +107,12 @@ Visual Studio C++ 구성 요소, CMake, .NET SDK를 Windows에 설치할 필요�
 
 ### 게임 조작 키 설정
 
-원격 제어는 ETS2 텔레메트리 채널에 쓰지 않고, Windows가 ETS2 활성 창에 키 입력을 보냅니다. 사용자의 ETS2 키 배치가 다를 수 있으므로 `WindowsBridge\BridgeServer\controls.json`은 기본으로 모든 조작을 `NONE`으로 둡니다.
+원격 제어는 ETS2 텔레메트리 채널에 쓰지 않고, Windows가 ETS2 활성 창에 키 입력을 보냅니다. 기본 키 배치는 모든 조작을 `NONE`으로 둡니다.
 
 1. ETS2의 **옵션 → 키 및 버튼**에서 각 조작에 배정된 키를 확인합니다.
-2. `controls.json`에서 해당 조작 값을 키 이름으로 바꿉니다. 예: `"horn": "H"`, `"parkingBrake.toggle": "SPACE"`.
+2. Windows에서 `%LOCALAPPDATA%\ETS2CarPlay\controls.json`을 메모장으로 열고 원하는 키로 바꿉니다. 예: `"horn": "H"`, `"parkingBrake.toggle": "SPACE"`.
 3. 지원 표기: `A-Z`, `0-9`, `SPACE`, `ENTER`, `ESC`, `TAB`, 방향키 이름, `F1`–`F12`.
-4. `build-bridge.ps1`을 다시 실행하고, 생성된 브리지 프로그램을 재시작합니다.
+4. 바탕 화면의 ETS2 CarPlay 브리지 창을 닫고 다시 시작합니다.
 
 키 설정이 비어 있거나 ETS2 창이 앞에 있지 않으면 브리지는 명령을 거부합니다. 게임이 실제 주행 중일 때만 조작을 보냅니다. 게임 창에 키를 전달할 때 ETS2와 브리지가 서로 다른 권한 수준으로 실행되면 Windows가 입력을 막을 수 있으므로, 둘 다 일반 권한으로 실행하세요.
 
@@ -117,7 +123,7 @@ Visual Studio C++ 구성 요소, CMake, .NET SDK를 Windows에 설치할 필요�
 3. Windows PC 주소와 6자리 페어링 코드 행을 각각 눌러 앱 안 숫자판으로 입력하고 연결합니다. 포트는 `8765`입니다.
 4. ETS2를 실행하고 운행을 시작하면 대시보드의 상태가 실시간 연결로 바뀝니다.
 
-한 번 페어링하면 iPad가 토큰을 Keychain에 저장하므로 다음부터는 PC 주소로 다시 연결할 수 있습니다. Windows 브리지를 재시작하면 새 페어링 코드가 생기고 이전 토큰은 만료됩니다. iPad 설정에서 페어링을 삭제한 뒤 새 코드를 입력하세요.
+한 번 페어링하면 iPad가 토큰을 Keychain에, Windows 브리지가 인증 토큰을 사용자 앱 데이터 폴더에 저장하므로 브리지를 재시작하거나 업데이트해도 자동으로 다시 연결됩니다. 인증을 새로 설정해야 하는 경우에만 Windows 시작 메뉴의 **ETS2 CarPlay 페어링 복구**를 실행하고 iPad에서 새 코드를 입력하세요.
 
 ## 실제 데이터와 기능 범위
 

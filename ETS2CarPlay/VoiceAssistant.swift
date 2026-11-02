@@ -59,12 +59,12 @@ final class VoiceAssistant: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
         synthesizer.speak(utterance)
     }
 
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        audioPlayer?.restoreVolumeAfterSpeech()
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        Task { @MainActor [weak self] in self?.audioPlayer?.restoreVolumeAfterSpeech() }
     }
 
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        audioPlayer?.restoreVolumeAfterSpeech()
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        Task { @MainActor [weak self] in self?.audioPlayer?.restoreVolumeAfterSpeech() }
     }
 
     private func requestSpeechPermission() async -> SFSpeechRecognizerAuthorizationStatus {
@@ -74,9 +74,7 @@ final class VoiceAssistant: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
     }
 
     private func requestMicrophonePermission() async -> Bool {
-        await withCheckedContinuation { continuation in
-            AVAudioSession.sharedInstance().requestRecordPermission { allowed in continuation.resume(returning: allowed) }
-        }
+        await AVAudioApplication.requestRecordPermission()
     }
 
     private func beginRecognition() {

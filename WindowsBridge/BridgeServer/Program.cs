@@ -9,12 +9,20 @@ if (int.TryParse(Environment.GetEnvironmentVariable("ETS2CP_PORT"), out var conf
 
 var controlsPath = Path.Combine(AppContext.BaseDirectory, "controls.json");
 var controlMap = ControlMap.Load(controlsPath);
-await using var host = new BridgeHost(port, controlMap);
+var resetPairing = args.Contains("--reset-pairing", StringComparer.OrdinalIgnoreCase);
+await using var host = new BridgeHost(port, controlMap, resetPairing);
 
 Console.WriteLine("ETS2 CarPlay Windows Bridge");
 Console.WriteLine($"WebSocket: ws://<이 PC의 IP>:{port}/ws");
 Console.WriteLine("ETS2 telemetry UDP: 127.0.0.1:8766");
-Console.WriteLine($"iPad 페어링 코드(한 번 사용): {host.PairingCode}");
+if (host.PairingCode is { } pairingCode)
+{
+    Console.WriteLine($"iPad 최초 페어링 코드: {pairingCode}");
+}
+else
+{
+    Console.WriteLine("이전에 페어링한 iPad는 저장된 인증 정보로 자동 재연결됩니다.");
+}
 Console.WriteLine("같은 신뢰할 수 있는 Wi-Fi에서만 연결하고, 인터넷으로 포트를 열지 마세요.");
 Console.WriteLine("등록된 조작 키: " + string.Join(", ", controlMap.EnabledControls));
 foreach (var address in GetLocalIPv4Addresses()) Console.WriteLine($"PC 주소: {address}");

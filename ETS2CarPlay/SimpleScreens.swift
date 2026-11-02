@@ -946,6 +946,7 @@ struct MessagesScreen: View {
 }
 
 struct VoiceAssistantScreen: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject var model: AppModel
     @ObservedObject private var assistant: VoiceAssistant
 
@@ -982,12 +983,15 @@ struct VoiceAssistantScreen: View {
                         .frame(width: 112, height: 112)
                         .background(assistant.isListening ? .red.opacity(0.75) : .blue.opacity(0.65), in: Circle())
                         .overlay(Circle().stroke(.white.opacity(0.20), lineWidth: 1))
+                        .symbolEffect(.pulse, options: .repeating, isActive: assistant.isListening && !reduceMotion)
+                        .contentTransition(.symbolEffect(.replace))
                     Text(assistant.isListening ? "듣는 중 · 누르면 종료" : "눌러서 말하기")
                         .font(.system(size: 15, weight: .semibold))
                 }
                 .foregroundStyle(.white)
             }
             .buttonStyle(.plain)
+            .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.72), value: assistant.isListening)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .dashboardCard(cornerRadius: 26)
 

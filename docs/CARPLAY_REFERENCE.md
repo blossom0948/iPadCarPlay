@@ -30,6 +30,14 @@ The launcher follows the reference's main proportions and interaction pattern:
 
 This is a visual reconstruction from the supplied screenshot and public CarPlay guidance. iPadOS cannot render the private, system-managed CarPlay Home screen inside this app, so the SwiftUI recreation should be described as CarPlay-style rather than pixel-identical Apple CarPlay.
 
+## Current CarPlay interaction references
+
+Apple's iOS 27 CarPlay guidance adds a compact Now Playing MiniPlayer and a Voice Control presentation for voice conversations. The iPad dashboard follows the same glance-first pattern with a compact music player, route and vehicle cards, and a voice screen that gives short state feedback while listening. The wide 8:3 dashboard uses three side-by-side cards so the most useful information stays visible at once.
+
+The added ETS2 cards use values from SCS telemetry: predicted fuel range versus remaining route distance, the next rest stop or mandatory break, and remaining job delivery time against in-game time. The fuel margin drives a short status change and alert; it does not invent a gas-station route. Rest and delivery countdowns are explicitly in game minutes. The app uses Liquid Glass only for the small navigation status control, while data cards keep an opaque enough content surface for legibility. Listening and connection animations respect Reduce Motion.
+
+These are visual and interaction references for a standalone iPad app. They do not use the CarPlay framework's private/system-managed templates and do not make the iPad an actual CarPlay receiver. [Apple WWDC26 — Rev up your CarPlay app](https://developer.apple.com/videos/play/wwdc2026/212/) · [Apple HIG — Materials](https://developer.apple.com/design/human-interface-guidelines/materials)
+
 ## Sources
 
 - [Apple Human Interface Guidelines — CarPlay](https://developer.apple.com/design/human-interface-guidelines/carplay): app templates, supported platforms, and common display sizes.

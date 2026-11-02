@@ -13,6 +13,7 @@
 
 #include "scssdk_telemetry.h"
 #include "common/scssdk_telemetry_common_configs.h"
+#include "common/scssdk_telemetry_common_channels.h"
 #include "common/scssdk_telemetry_common_gameplay_events.h"
 #include "common/scssdk_telemetry_truck_common_channels.h"
 #include "eurotrucks2/scssdk_eut2.h"
@@ -21,6 +22,7 @@ namespace {
 
 struct FloatField { float value = 0; bool available = false; };
 struct IntField { int32_t value = 0; bool available = false; };
+struct UIntField { uint32_t value = 0; bool available = false; };
 struct BoolField { bool value = false; bool available = false; };
 struct StringField { std::string value; bool available = false; };
 
@@ -36,6 +38,9 @@ struct TelemetryState {
     FloatField speed;
     FloatField rpm;
     IntField gear;
+    IntField nextRestStop;
+    IntField nextMandatoryBreak;
+    UIntField gameTimeMinutes;
     FloatField fuel;
     FloatField fuelRange;
     FloatField navigationDistance;
@@ -56,6 +61,7 @@ struct TelemetryState {
     StringField destinationCompany;
     double fuelCapacity = 0;
     bool fuelCapacityAvailable = false;
+    UIntField deliveryDeadlineGameMinutes;
 } state;
 
 scs_log_t gameLog = nullptr;
@@ -123,6 +129,10 @@ std::string buildSnapshot() {
         << ",\"speedMps\":" << number(state.speed.value, state.speed.available)
         << ",\"engineRpm\":" << number(state.rpm.value, state.rpm.available)
         << ",\"gear\":" << (state.gear.available ? std::to_string(state.gear.value) : "null")
+        << ",\"nextRestStopMinutes\":" << (state.nextRestStop.available ? std::to_string(state.nextRestStop.value) : "null")
+        << ",\"nextMandatoryBreakMinutes\":" << (state.nextMandatoryBreak.available ? std::to_string(state.nextMandatoryBreak.value) : "null")
+        << ",\"gameTimeMinutes\":" << (state.gameTimeMinutes.available ? std::to_string(state.gameTimeMinutes.value) : "null")
+        << ",\"deliveryDeadlineGameMinutes\":" << (state.deliveryDeadlineGameMinutes.available ? std::to_string(state.deliveryDeadlineGameMinutes.value) : "null")
         << ",\"fuelLiters\":" << number(state.fuel.value, state.fuel.available)
         << ",\"fuelCapacityLiters\":" << number(state.fuelCapacity, state.fuelCapacityAvailable)
         << ",\"fuelRangeKm\":" << number(state.fuelRange.value, state.fuelRange.available)
@@ -169,6 +179,12 @@ SCSAPI_VOID storeInt(const scs_string_t, const scs_u32_t, const scs_value_t* con
     auto* field = static_cast<IntField*>(context);
     field->available = value != nullptr;
     if (value) field->value = value->value_s32.value;
+}
+
+SCSAPI_VOID storeUInt(const scs_string_t, const scs_u32_t, const scs_value_t* const value, const scs_context_t context) {
+    auto* field = static_cast<UIntField*>(context);
+    field->available = value != nullptr;
+    if (value) field->value = value->value_u32.value;
 }
 
 SCSAPI_VOID storeBool(const scs_string_t, const scs_u32_t, const scs_value_t* const value, const scs_context_t context) {
@@ -282,6 +298,7 @@ SCSAPI_VOID onGameplayEvent(const scs_event_t, const void* const eventInfo, cons
         state.sourceCity = {};
         state.destinationCity = {};
         state.destinationCompany = {};
+        state.deliveryDeadlineGameMinutes = {};
     }
 }
 
@@ -302,6 +319,12 @@ SCSAPI_VOID onConfiguration(const scs_event_t, const void* const eventInfo, cons
         state.destinationCity.available = !state.destinationCity.value.empty();
         state.destinationCompany.value = attributeString(info->attributes, SCS_TELEMETRY_CONFIG_ATTRIBUTE_destination_company);
         state.destinationCompany.available = !state.destinationCompany.value.empty();
+        bool deadlineFound = false;
+        const double deadline = attributeNumber(info->attributes, SCS_TELEMETRY_CONFIG_ATTRIBUTE_delivery_time, &deadlineFound);
+        state.deliveryDeadlineGameMinutes.value = deadlineFound && deadline >= 0
+            ? static_cast<uint32_t>(deadline)
+            : 0;
+        state.deliveryDeadlineGameMinutes.available = deadlineFound && deadline >= 0;
     }
 }
 
@@ -358,6 +381,12 @@ extern "C" SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version, const scs_t
     registerFloat(versionParams, SCS_TELEMETRY_TRUCK_CHANNEL_engine_rpm, &state.rpm);
     versionParams->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_engine_gear, SCS_U32_NIL, SCS_VALUE_TYPE_s32,
         SCS_TELEMETRY_CHANNEL_FLAG_no_value, storeInt, &state.gear);
+    versionParams->register_for_channel(SCS_TELEMETRY_CHANNEL_next_rest_stop, SCS_U32_NIL, SCS_VALUE_TYPE_s32,
+        SCS_TELEMETRY_CHANNEL_FLAG_no_value, storeInt, &state.nextRestStop);
+    versionParams->register_for_channel(SCS_TELEMETRY_CHANNEL_next_mandatory_break, SCS_U32_NIL, SCS_VALUE_TYPE_s32,
+        SCS_TELEMETRY_CHANNEL_FLAG_no_value, storeInt, &state.nextMandatoryBreak);
+    versionParams->register_for_channel(SCS_TELEMETRY_CHANNEL_game_time, SCS_U32_NIL, SCS_VALUE_TYPE_u32,
+        SCS_TELEMETRY_CHANNEL_FLAG_no_value, storeUInt, &state.gameTimeMinutes);
     registerFloat(versionParams, SCS_TELEMETRY_TRUCK_CHANNEL_fuel, &state.fuel);
     registerFloat(versionParams, SCS_TELEMETRY_TRUCK_CHANNEL_fuel_range, &state.fuelRange);
     registerFloat(versionParams, SCS_TELEMETRY_TRUCK_CHANNEL_navigation_distance, &state.navigationDistance);

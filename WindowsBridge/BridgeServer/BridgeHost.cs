@@ -15,6 +15,7 @@ internal sealed class BridgeHost : IAsyncDisposable
     private readonly int _port;
     private readonly ControlMap _controls;
     private readonly TcpListener _listener;
+    private readonly string _pairingTokenPath;
     private readonly object _pairLock = new();
     private string _pairingCode = CreatePairingCode();
     private string? _pairingToken;
@@ -25,14 +26,17 @@ internal sealed class BridgeHost : IAsyncDisposable
     private readonly ConcurrentDictionary<string, ushort> _heldKeys = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<Guid, Task> _clientTasks = new();
 
-    public BridgeHost(int port, ControlMap controls)
+    public BridgeHost(int port, ControlMap controls, bool resetPairing = false)
     {
         _port = port;
         _controls = controls;
         _listener = new TcpListener(IPAddress.Any, port);
+        _pairingTokenPath = Path.Combine(AppContext.BaseDirectory, "pairing.token");
+        if (resetPairing && File.Exists(_pairingTokenPath)) File.Delete(_pairingTokenPath);
+        _pairingToken = LoadPairingToken();
     }
 
-    public string PairingCode => _pairingCode;
+    public string? PairingCode => _pairingToken is null ? _pairingCode : null;
 
     public async Task RunAsync(CancellationToken cancellationToken)
     {
@@ -193,7 +197,7 @@ internal sealed class BridgeHost : IAsyncDisposable
                 var token = request.TryGetProperty("token", out var tokenElement) ? tokenElement.GetString() : null;
                 if (!IsValidToken(token))
                 {
-                    await session.SendObjectAsync(new { type = "auth.rejected", message = "저장된 페어링 정보가 만료되었습니다. Windows 브리지를 다시 시작해 새 코드를 입력하세요." }, cancellationToken);
+                    await session.SendObjectAsync(new { type = "auth.rejected", message = "저장된 페어링 정보가 맞지 않습니다. Windows에서 'ETS2 CarPlay 페어링 복구'를 실행해 새 코드를 발급하세요." }, cancellationToken);
                     await session.CloseAsync(WebSocketCloseStatus.PolicyViolation, "authentication rejected", cancellationToken);
                     return;
                 }
@@ -240,8 +244,22 @@ internal sealed class BridgeHost : IAsyncDisposable
             {
                 return false;
             }
-            _pairingToken = CreateToken();
-            token = _pairingToken;
+            var newToken = CreateToken();
+            try
+            {
+                File.WriteAllText(_pairingTokenPath + ".tmp", newToken, Encoding.UTF8);
+                File.Move(_pairingTokenPath + ".tmp", _pairingTokenPath, overwrite: true);
+            }
+            catch (IOException)
+            {
+                return false;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return false;
+            }
+            _pairingToken = newToken;
+            token = newToken;
             _pairingCode = string.Empty;
             Console.WriteLine("iPad가 페어링되었습니다.");
             return true;
@@ -358,6 +376,24 @@ internal sealed class BridgeHost : IAsyncDisposable
     }
 
     private static string CreatePairingCode() => RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+
+    private string? LoadPairingToken()
+    {
+        try
+        {
+            if (!File.Exists(_pairingTokenPath)) return null;
+            var token = File.ReadAllText(_pairingTokenPath).Trim();
+            return token.Length == 43 ? token : null;
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
 
     private static string CreateToken() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
         .TrimEnd('=').Replace('+', '-').Replace('/', '_');
