@@ -1,20 +1,62 @@
-ETS2 CarPlay Windows quick setup
-================================
+ETS2 CarPlay - Windows 초보자 설치 안내
+=======================================
 
-You do not need Visual Studio, CMake, or the .NET SDK when using this ready-built bundle.
+이 폴더에는 ETS2 플러그인 설치 파일과 iPad 앱에 주행 정보를 보내는 브리지가 있습니다.
+평소 사용할 때 Visual Studio, CMake, .NET SDK는 설치할 필요가 없습니다.
 
-FIRST TIME ONLY
-1. Fully close Euro Truck Simulator 2.
-2. Double-click Install-ETS2Plugin.bat.
-3. Select the Euro Truck Simulator 2 folder. Choose the folder that contains "bin".
-4. Allow the Windows permission prompt so the installer can copy the telemetry plugin.
+먼저 알아둘 점
+--------------
+- 이 파일은 Windows PC에 설치하는 연결 도구입니다. iPad 앱은 별도로 iPad에 설치되어 있어야 합니다.
+- PC와 iPad는 같은 공유기 네트워크에 연결해야 합니다. 인터넷은 없어도 됩니다.
+- PC에 Wi-Fi가 없어도 PC를 공유기에 랜선으로 연결하고 iPad를 같은 공유기의 Wi-Fi에 연결하면 됩니다.
+- USB 케이블만 꽂아 iPad와 Windows 브리지를 직접 연결하는 기능은 없습니다.
 
-EACH TIME YOU PLAY
-1. Connect the iPad and Windows PC to the same home Wi-Fi network.
-2. Double-click Start-Bridge.bat. Keep its window open.
-3. If Windows Firewall asks, allow access on Private networks only.
-4. In the iPad app, open Settings > ETS2 Connection. Enter the PC IPv4 address, port 8765, and the six-digit pairing code shown in the bridge window.
-5. Start ETS2, load a profile, and begin driving.
+처음 한 번만 할 일: ETS2 플러그인 설치
+-------------------------------------
+1. ETS2가 켜져 있으면 완전히 종료합니다.
+2. Install-ETS2Plugin.bat을 더블클릭합니다.
+3. Windows에서 권한을 물으면 [예]를 누릅니다.
+4. 폴더 선택 창이 뜨면 Steam에서 ETS2 설치 폴더를 찾아 선택합니다.
+   가장 쉬운 방법: Steam 라이브러리에서 Euro Truck Simulator 2를 마우스 오른쪽
+   버튼으로 누르고 [관리] > [로컬 파일 보기]를 선택합니다.
+5. 선택할 폴더 바로 안에 bin 폴더가 있어야 합니다. bin 폴더 안으로 들어가서
+   선택하지 마세요.
+6. 설치 완료 메시지가 뜨면 끝입니다. 이 설치는 처음 한 번만 합니다.
 
-If the bridge is restarted and pairing no longer works, remove the old pairing in the iPad app and enter the new six-digit code.
-Do not enter 127.0.0.1 as the PC address; use the IPv4 address printed by the bridge.
+PC에 Wi-Fi가 없을 때
+--------------------
+1. 랜선 한쪽을 PC의 네트워크 단자에, 다른 쪽을 공유기의 LAN 단자에 꽂습니다.
+   공유기에 WAN 또는 Internet이라고 적힌 단자 대신 LAN이라고 적힌 단자를 쓰세요.
+2. iPad를 그 공유기의 일반 Wi-Fi에 연결합니다.
+3. PC와 iPad가 같은 공유기에 연결되면 인터넷 없이도 서로 통신할 수 있습니다.
+
+PC에 랜선 단자가 없으면 USB Wi-Fi 어댑터를 쓸 수 있습니다. Wi-Fi + Cellular
+iPad의 USB 개인용 핫스팟은 Windows에 Apple Devices 앱 또는 iTunes가 필요하며,
+이 앱의 브리지 연결은 그 방식으로 확인하지 않았습니다. 같은 공유기의 Wi-Fi와
+랜선 연결을 권장합니다.
+
+매번 ETS2를 할 때
+-----------------
+1. PC와 iPad가 같은 공유기 네트워크에 연결되어 있는지 확인합니다.
+2. Start-Bridge.bat을 더블클릭합니다. 검은 창은 게임을 하는 동안 열어 둡니다.
+3. Windows 방화벽 질문이 나오면 개인 네트워크에서만 허용합니다.
+4. 검은 창에 나온 IPv4 주소와 6자리 코드를 확인합니다. 주소가 여러 개면 iPad와
+   같은 공유기에 연결된 주소를 씁니다. 127.0.0.1은 입력하면 안 됩니다.
+5. iPad 앱에서 설정 > ETS2 연결을 엽니다.
+6. [Windows PC 주소]를 누르고 앱 안 숫자판으로 IPv4 주소를 입력한 뒤 [완료]를
+   누릅니다. 점(.) 버튼도 사용합니다.
+7. 포트는 8765 그대로 둡니다. [6자리 페어링 코드]를 눌러 검은 창의 숫자를
+   입력한 뒤 [완료]를 누릅니다. iPad 키보드가 뜨지 않아도 앱 숫자판으로 입력합니다.
+8. [연결 또는 페어링]을 누릅니다. iPad에서 로컬 네트워크 권한을 물으면 허용합니다.
+9. ETS2를 실행하고 프로필을 불러와 실제 운행을 시작합니다. 브리지 창은 계속 켜 둡니다.
+
+연결 문제 해결
+--------------
+- PC와 iPad가 같은 공유기에 연결됐는지 확인합니다. 게스트 Wi-Fi는 피하세요.
+- Windows 방화벽에서는 개인 네트워크 허용을 선택합니다.
+- Windows 브리지를 다시 켰으면 새 6자리 코드가 표시됩니다. 앱 설정에서 이전 페어링을
+  삭제하고 새 코드를 입력하세요.
+- 연결은 됐지만 속도 정보가 없으면 ETS2 프로필을 불러와 운행을 시작하세요.
+- 원격 조작 버튼은 기본으로 꺼져 있습니다. 별도 키 설정 없이는 작동하지 않습니다.
+
+자세한 설치 안내: https://github.com/blossom0948/iPadCarPlay#readme

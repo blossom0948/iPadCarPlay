@@ -31,7 +31,7 @@ iPad에서 실행하는 ETS2 대시보드입니다. iPad Air와 iPadOS 27을 대
 
 앱은 가로와 세로 iPad 화면을 모두 채우며, 기본 비율은 iPad 전체 화면입니다. 홈 화면은 화면 가장자리까지 이어지고 한 페이지에 앱 아이콘 8개를 4×2로 표시합니다. 아이콘 크기는 **설정 → 디스플레이**에서 슬라이더로 조절할 수 있습니다. 설정, 대시보드 등 앱 안의 창과 글에는 별도 간격을 둡니다. 최근 또는 즐겨찾기 분할 조합을 홈 아래에서 다시 열 수 있고, 왼쪽 도크의 홈 버튼은 분할 화면에서도 한 번 눌러 홈으로 돌아갑니다. 앱 화면 아이콘은 Apple SF Symbols 시스템 심볼을 사용하며, Apple 앱의 상표 아이콘을 복제하지 않습니다. 설정에서 CarPlay 8:3 와이드 화면 비율을 선택할 수 있습니다. 왼쪽 도크의 분할 보기 버튼을 누르면 대시보드와 YouTube 또는 YouTube Music을 나란히 표시하고 가운데 손잡이를 끌어 너비를 조절합니다. 화면 재질과 전환은 보내주신 Liquid Glass 안내와 iPad의 동작 줄이기 설정을 참고합니다. 배경화면 메뉴에는 CarPlay용 자체 테마와 사진 보관함 선택이 있습니다. 실제 차량에 내장된 공식 CarPlay 배경은 차량의 CarPlay 설정에서 고르는 항목이며, 이 앱에서 불러올 수 있는 이미지 파일이나 공개 API는 Apple이 제공하지 않습니다. 운행 화면은 실제 ETS2 데이터가 없으면 연결 및 대기 상태만 보여주며, 임의 속도·목적지·경로를 만들지 않습니다. 와이드 선택은 [Apple CarPlay 디자인 가이드](https://developer.apple.com/design/human-interface-guidelines/carplay)의 화면 비율을 참고합니다.
 
-설정 첫 화면은 CarPlay식 큰 터치 메뉴이며, 배경화면 선택은 별도 화면으로 열립니다. 세부 설정은 SwiftUI 기본 입력 요소를 사용합니다. 화면 재질과 전환은 보내주신 Liquid Glass 가이드와 [Apple Human Interface Guidelines의 Materials](https://developer.apple.com/design/human-interface-guidelines/materials), [Liquid Glass 적용 안내](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass)를 참고했습니다.
+설정 첫 화면은 CarPlay식 큰 터치 메뉴이며, 배경화면 선택은 별도 화면으로 열립니다. 연결 정보는 앱 안의 숫자판으로 입력할 수 있어 iPadOS 키보드가 표시되지 않는 상황에서도 페어링할 수 있습니다. 화면 재질과 전환은 보내주신 Liquid Glass 가이드와 [Apple Human Interface Guidelines의 Materials](https://developer.apple.com/design/human-interface-guidelines/materials), [Liquid Glass 적용 안내](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass)를 참고했습니다.
 
 ## 구조
 
@@ -40,7 +40,7 @@ ETS2 SCS Telemetry SDK plugin
        │  loopback UDP 127.0.0.1:8766
        ▼
 Windows Bridge (.NET WebSocket server, port 8765)
-       │  local Wi-Fi WebSocket
+       │  local-network WebSocket (Wi-Fi or Ethernet)
        ▼
 iPad app (SwiftUI)
 ```
@@ -56,7 +56,7 @@ SCS SDK 1.16 헤더와 MIT 라이선스 전문은 `WindowsBridge/SCS_SDK`에 포
 
 ### 이번 화면 개편 빌드 확인
 
-Xcode 27.2에서 앱 **1.4.0 (빌드 11)**을 빌드해 iPad Air 4세대(iPadOS 27.0.1)에 설치했습니다. 홈 화면 가장자리 배치와 CarPlay 홈 화면을 참고한 평면형 앱 아이콘을 확인했습니다. Windows PC의 ETS2 텔레메트리 브리지와 게임 플러그인은 별도 Windows 환경에서 연결 확인이 필요하므로, 이 문서만으로 ETS2 실시간 연동까지 검증됐다는 뜻은 아닙니다.
+Xcode 27.2에서 앱 **1.4.0 (빌드 12)**을 빌드해 iPad Air 4세대(iPadOS 27.0.1)에 설치했습니다. 빌드 12에는 iPad 키보드가 나타나지 않아도 IP 주소와 페어링 코드를 입력할 수 있는 앱 내 숫자판을 추가했습니다. Windows PC의 ETS2 텔레메트리 브리지와 게임 플러그인은 별도 Windows 환경에서 연결 확인이 필요하므로, 이 문서만으로 ETS2 실시간 연동까지 검증됐다는 뜻은 아닙니다.
 
 ## 앱 업데이트
 
@@ -66,11 +66,21 @@ iPadOS는 실행 중인 앱이 자기 앱을 교체 설치하는 것을 허용�
 
 ## Windows PC와 ETS2 연결
 
+### Windows PC에 Wi-Fi가 없어도 연결할 수 있습니다
+
+이 앱의 ETS2 연결은 인터넷을 거치지 않고 **같은 공유기 안의 로컬 네트워크**에서 동작합니다. 따라서 Windows PC에 Wi-Fi가 없어도 괜찮습니다.
+
+1. 랜선 한쪽을 PC의 네트워크 단자에, 다른 쪽을 공유기의 `LAN`이라고 표시된 단자에 꽂습니다. 공유기 `WAN`/`Internet` 단자에는 꽂지 않습니다.
+2. iPad를 같은 공유기의 일반 Wi-Fi에 연결합니다. PC는 랜선, iPad는 Wi-Fi여도 같은 공유기를 쓰면 통신할 수 있습니다.
+3. 인터넷 연결은 필요하지 않습니다. 공유기 전원과 PC↔iPad의 같은 내부 네트워크 연결이 필요합니다.
+
+PC에 랜선 단자가 없으면 USB Wi-Fi 어댑터를 사용해 같은 Wi-Fi에 연결하는 방법이 가장 간단합니다. Wi-Fi + Cellular iPad의 USB 개인용 핫스팟도 가능할 수 있지만, Windows에는 Apple Devices 앱 또는 iTunes가 필요하고 이 앱의 브리지 통신은 그 방식으로 검증하지 않았습니다. [Apple의 iPad 핫스팟 안내](https://support.apple.com/en-euro/guide/ipad/ipadb2c87b68/27/ipados/27)
+
 ### 가장 간단한 방법: 준비된 Windows 묶음 내려받기
 
 - Windows 10/11 x64
 - ETS2 1.14 이상. SCS SDK 1.16 기준 ETS2 버전은 현재/이후 마이너 버전과 호환됩니다.
-- 같은 Wi-Fi에 연결된 iPad와 Windows PC
+- 같은 공유기 네트워크에 연결된 iPad와 Windows PC (Windows는 Wi-Fi 또는 랜선 연결)
 
 Visual Studio C++ 구성 요소, CMake, .NET SDK를 Windows에 설치할 필요가 없습니다. GitHub가 Windows 가상 컴퓨터에서 브리지와 ETS2 플러그인을 미리 빌드합니다.
 
@@ -79,7 +89,7 @@ Visual Studio C++ 구성 요소, CMake, .NET SDK를 Windows에 설치할 필요�
 3. 해당 실행 화면 아래 **Artifacts**에서 `ETS2CarPlay-Windows`를 내려받아 압축을 풉니다. 압축 안의 `README-FIRST.txt`도 참고할 수 있습니다.
 4. ETS2를 완전히 종료하고 `Install-ETS2Plugin.bat`을 더블클릭합니다. Windows 권한 확인이 나오면 허용하고, `bin` 폴더가 들어 있는 Euro Truck Simulator 2 게임 폴더를 선택합니다. Steam에서는 ETS2의 **관리 → 로컬 파일 보기**로 게임 폴더를 찾을 수 있습니다. 이 작업은 처음 한 번만 합니다.
 5. 매번 ETS2를 할 때 `Start-Bridge.bat`을 더블클릭하고 창을 열어 둡니다. Windows 방화벽이 묻는 경우 **개인 네트워크에서만 허용**합니다.
-6. iPad와 Windows PC가 같은 Wi-Fi에 연결되어 있는지 확인합니다. 앱에서 **설정 → ETS2 연결**을 열고 브리지 창에 표시된 PC IPv4 주소, 포트 `8765`, 6자리 코드를 입력합니다. `127.0.0.1`은 입력하지 않습니다.
+6. iPad와 Windows PC가 같은 공유기 네트워크에 있는지 확인합니다. 앱에서 **설정 → ETS2 연결**을 열고 **Windows PC 주소** 행을 눌러 앱 안 숫자판에 브리지 창의 IPv4 주소를 입력합니다. 포트는 `8765` 그대로 둡니다. **6자리 페어링 코드** 행을 눌러 코드를 입력하고 **연결 또는 페어링**을 누릅니다. iPad 키보드가 표시되지 않아도 앱 안 숫자판으로 입력할 수 있습니다. `127.0.0.1`은 입력하지 않습니다.
 7. ETS2를 실행하고 저장된 프로필을 불러와 운행을 시작합니다. 브리지 창은 운행 중 계속 열어 둡니다.
 
 한 번 페어링하면 iPad가 인증 토큰을 저장합니다. 브리지를 재시작한 뒤 연결이 거부되면 iPad 설정에서 페어링을 삭제하고 Windows 창에 새로 표시된 코드로 다시 연결하세요.
@@ -102,9 +112,9 @@ Visual Studio C++ 구성 요소, CMake, .NET SDK를 Windows에 설치할 필요�
 
 ### iPad 페어링
 
-1. iPad와 Windows PC를 같은 신뢰할 수 있는 Wi-Fi에 연결합니다.
+1. iPad와 Windows PC를 같은 신뢰할 수 있는 공유기 네트워크에 연결합니다. Windows PC는 랜선으로 공유기에 연결해도 됩니다.
 2. 앱에서 **설정 → ETS2 연결**을 엽니다.
-3. Windows 콘솔의 PC IPv4 주소와 포트 `8765`, 페어링 코드를 입력하고 연결합니다.
+3. Windows PC 주소와 6자리 페어링 코드 행을 각각 눌러 앱 안 숫자판으로 입력하고 연결합니다. 포트는 `8765`입니다.
 4. ETS2를 실행하고 운행을 시작하면 대시보드의 상태가 실시간 연결로 바뀝니다.
 
 한 번 페어링하면 iPad가 토큰을 Keychain에 저장하므로 다음부터는 PC 주소로 다시 연결할 수 있습니다. Windows 브리지를 재시작하면 새 페어링 코드가 생기고 이전 토큰은 만료됩니다. iPad 설정에서 페어링을 삭제한 뒤 새 코드를 입력하세요.

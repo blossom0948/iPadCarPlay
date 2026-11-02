@@ -574,6 +574,8 @@ private struct ConnectionSettingsView: View {
     @AppStorage("bridgeHost") private var bridgeHost = ""
     @AppStorage("bridgePort") private var bridgePort = 8765
     @State private var pairingCode = ""
+    @State private var activeInput: ConnectionInputField?
+    @State private var inputDraft = ""
 
     init(model: AppModel) {
         self.model = model
@@ -585,14 +587,31 @@ private struct ConnectionSettingsView: View {
             Section {
                 LabeledContent("상태", value: bridge.status.label)
                 LabeledContent("ETS2", value: bridge.gameState.label)
-                TextField("Windows PC의 IPv4 주소", text: $bridgeHost)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.decimalPad)
-                TextField("포트", value: $bridgePort, format: .number)
-                    .keyboardType(.numberPad)
-                SecureField("처음 연결할 때 6자리 코드", text: $pairingCode)
-                    .keyboardType(.numberPad)
+                Button {
+                    openInput(.host)
+                } label: {
+                    inputRow(
+                        title: "Windows PC 주소",
+                        value: bridgeHost,
+                        placeholder: "눌러서 IP 입력",
+                        symbol: "pc"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                LabeledContent("포트", value: String(bridgePort))
+
+                Button {
+                    openInput(.pairingCode)
+                } label: {
+                    inputRow(
+                        title: "6자리 페어링 코드",
+                        value: pairingCode,
+                        placeholder: "처음 연결할 때 입력",
+                        symbol: "number"
+                    )
+                }
+                .buttonStyle(.plain)
 
                 Button {
                     bridge.connect(host: bridgeHost, port: bridgePort, pairingCode: pairingCode)
@@ -610,7 +629,7 @@ private struct ConnectionSettingsView: View {
             } header: {
                 Text("Windows 브리지")
             } footer: {
-                Text("같은 신뢰할 수 있는 Wi‑Fi에 연결하세요. 페어링 코드는 Windows 브리지 창에 표시되며 한 번만 사용됩니다.")
+                Text("IP 주소와 코드는 항목을 누른 뒤 앱 안의 숫자판으로 입력합니다. iPad 키보드가 나타나지 않아도 입력할 수 있습니다. PC와 iPad는 같은 공유기 네트워크에 있어야 합니다. 페어링 코드는 처음 한 번만 사용됩니다.")
             }
 
             Section("연결 방법") {
@@ -624,6 +643,155 @@ private struct ConnectionSettingsView: View {
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
+        .sheet(item: $activeInput) { field in
+            ConnectionNumberPad(
+                title: field.title,
+                placeholder: field.placeholder,
+                value: $inputDraft,
+                maxLength: field.maxLength,
+                allowsDecimalPoint: field.allowsDecimalPoint,
+                onCancel: { activeInput = nil },
+                onSave: {
+                    switch field {
+                    case .host:
+                        bridgeHost = inputDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                    case .pairingCode:
+                        pairingCode = String(inputDraft.filter { $0.isNumber }.prefix(6))
+                    }
+                    activeInput = nil
+                }
+            )
+            .presentationDetents([.height(470)])
+            .presentationDragIndicator(.visible)
+        }
+    }
+
+    private func openInput(_ field: ConnectionInputField) {
+        switch field {
+        case .host: inputDraft = bridgeHost
+        case .pairingCode: inputDraft = pairingCode
+        }
+        activeInput = field
+    }
+
+    private func inputRow(title: String, value: String, placeholder: String, symbol: String) -> some View {
+        HStack(spacing: 12) {
+            Label(title, systemImage: symbol)
+            Spacer(minLength: 10)
+            Text(value.isEmpty ? placeholder : value)
+                .font(.system(.body, design: .rounded, weight: value.isEmpty ? .regular : .semibold))
+                .foregroundStyle(value.isEmpty ? .secondary : .primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .contentShape(Rectangle())
+    }
+}
+
+private enum ConnectionInputField: String, Identifiable {
+    case host
+    case pairingCode
+
+    var id: String { rawValue }
+    var title: String { self == .host ? "Windows PC 주소" : "페어링 코드" }
+    var placeholder: String { self == .host ? "예: 192.168.0.20" : "Windows 창의 6자리 숫자" }
+    var maxLength: Int { self == .host ? 15 : 6 }
+    var allowsDecimalPoint: Bool { self == .host }
+}
+
+private struct ConnectionNumberPad: View {
+    let title: String
+    let placeholder: String
+    @Binding var value: String
+    let maxLength: Int
+    let allowsDecimalPoint: Bool
+    let onCancel: () -> Void
+    let onSave: () -> Void
+
+    private var keys: [String] {
+        allowsDecimalPoint
+            ? ["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "delete.left"]
+            : ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "delete.left"]
+    }
+
+    var body: some View {
+        VStack(spacing: 14) {
+            HStack {
+                Button("취소", action: onCancel)
+                Spacer()
+                Text(title)
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                Spacer()
+                Button("완료", action: onSave)
+                    .fontWeight(.semibold)
+                    .disabled(!canSave)
+            }
+
+            Text(value.isEmpty ? placeholder : value)
+                .font(.system(size: 27, weight: .semibold, design: .rounded).monospaced())
+                .lineLimit(1)
+                .minimumScaleFactor(0.65)
+                .frame(maxWidth: .infinity, minHeight: 52)
+                .padding(.horizontal, 12)
+                .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .accessibilityLabel(value.isEmpty ? placeholder : value)
+
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 9), count: 3), spacing: 8) {
+                ForEach(Array(keys.enumerated()), id: \.offset) { _, key in
+                    if key.isEmpty {
+                        Color.clear.frame(height: 51)
+                    } else if key == "delete.left" {
+                        Button(action: deleteLastCharacter) {
+                            Image(systemName: key)
+                                .font(.system(size: 20, weight: .semibold))
+                                .frame(maxWidth: .infinity, minHeight: 51)
+                                .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("마지막 글자 지우기")
+                    } else {
+                        Button(key) { append(key) }
+                            .font(.system(size: 22, weight: .semibold, design: .rounded))
+                            .frame(maxWidth: .infinity, minHeight: 51)
+                            .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            Text(allowsDecimalPoint ? "숫자와 점(.)을 눌러 IP 주소를 입력하세요." : "Windows 브리지 창에 나온 숫자 6자리를 입력하세요.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(20)
+        .frame(maxWidth: 520)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.regularMaterial)
+    }
+
+    private func append(_ character: String) {
+        guard value.count < maxLength else { return }
+        if character == ".", value.last == "." { return }
+        value.append(contentsOf: character)
+    }
+
+    private func deleteLastCharacter() {
+        guard !value.isEmpty else { return }
+        value.removeLast()
+    }
+
+    private var canSave: Bool {
+        guard allowsDecimalPoint else { return value.count == maxLength }
+        let octets = value.split(separator: ".", omittingEmptySubsequences: false)
+        guard octets.count == 4 else { return false }
+        return octets.allSatisfy { octet in
+            guard octet.count <= 3, let number = Int(octet) else { return false }
+            return (0...255).contains(number)
+        }
     }
 }
 
