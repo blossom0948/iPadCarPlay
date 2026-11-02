@@ -56,11 +56,11 @@ SCS SDK 1.16 헤더와 MIT 라이선스 전문은 `WindowsBridge/SCS_SDK`에 포
 
 두 방법의 단계별 안내, Apple 계정 서명, Developer Mode, Windows 브리지 설치는 [초보자 설치·연동 안내](INSTALLATION_GUIDE.md)에 정리했습니다. 프로젝트의 최소 배포 버전은 iPadOS 17입니다. Apple은 Xcode 27에서 iPadOS 27 이상 기기의 무선 페어링을 지원합니다. [Xcode 27 릴리스 노트](https://developer.apple.com/documentation/xcode-release-notes/xcode-27-release-notes) · [Device Hub 페어링 안내](https://developer.apple.com/documentation/xcode/managing-your-simulated-and-physical-devices-in-device-hub)
 
-Mac에 저장소를 받은 뒤에는 `Install-iPad.command`를 두 번 눌러 빌드와 연결된 iPad 설치를 한 번에 할 수 있습니다. 처음 한 번은 Xcode에서 Apple 계정과 Team 서명을 설정하고 iPad를 잠금 해제해 두어야 합니다. iPad 단독으로 임의의 개발용 앱을 설치할 수는 없으며 Apple의 코드 서명 절차가 필요합니다.
+Mac에 저장소를 받은 뒤에는 `Install-iPad.command`를 두 번 눌러 빌드와 연결된 iPad 설치를 한 번에 할 수 있습니다. 스크립트는 연결된 기기와 Mac에 저장된 유효한 서명 프로필을 찾아 자동으로 사용합니다. 맞는 프로필이 없다면 Xcode에서 Apple 계정에 로그인하고 Team 서명을 한 번 설정해야 합니다. 설치할 때 iPad는 잠금 해제해 둡니다. iPad 단독으로 임의의 개발용 앱을 설치할 수는 없으며 Apple의 코드 서명 절차가 필요합니다.
 
 ### 이번 화면 개편 빌드 확인
 
-Xcode 27.2의 iPad 시뮬레이터용 **1.5.0 (빌드 13)** 빌드가 통과했습니다. 이 버전에는 목적지 전 연료 판단, 게임 시간 기준 휴식·배송 마감 정보, 애니메이션 상태 피드백과 Mac 원클릭 설치 명령이 포함됩니다. 현재 Mac의 Xcode 자동 서명 팀 계정 문제로 이 새 빌드를 실제 iPad에 설치하지 못했고, 시뮬레이터 화면도 실행 확인하지 못했습니다. 새 iPad 설치 전에 Xcode에서 Apple 계정을 로그인하고 본인 Team을 한 번 선택해야 합니다. Windows 설치 묶음은 GitHub Actions에서 별도로 빌드되며, Windows ETS2 운행은 실제 게임 PC에서 별도 확인이 필요합니다.
+Xcode 27.2의 iPad 시뮬레이터 빌드가 통과했고, 실제 **iPad Air (4세대, iPadOS 27.0.1)**에 **1.5.0 (빌드 13)**을 설치하고 실행했습니다. Device Hub에서 버전을 확인하고 실제 홈 화면도 캡처해 확인했습니다. 이 버전에는 목적지 전 연료 판단, 게임 시간 기준 휴식·배송 마감 정보, 애니메이션 상태 피드백과 Mac 원클릭 설치 명령이 포함됩니다. Xcode는 App Intents 메타데이터 생성을 건너뛰었다는 비치명 경고를 남겼습니다(앱은 App Intents를 사용하지 않습니다). ETS2 실시간 운행 연동은 Windows 게임 PC에서 확인해야 합니다. Windows 설치 묶음은 GitHub Actions 빌드에서 생성됩니다.
 
 ## 앱 업데이트
 

@@ -40,7 +40,7 @@ else
     DEVICE_ID="${DEVICE_IDS[$((DEVICE_INDEX - 1))]}"
 fi
 
-PROFILE_TEAM="$(/usr/bin/python3 - "$DEVICE_ID" "$BUNDLE_ID" <<'PY'
+PROFILE_INFO="$(/usr/bin/python3 - "$DEVICE_ID" "$BUNDLE_ID" <<'PY'
 import datetime, glob, hashlib, os, plistlib, re, subprocess, sys
 device_id, bundle_id = sys.argv[1:]
 patterns = [
@@ -67,13 +67,15 @@ for pattern in patterns:
             if not available.intersection(profile_certificates):
                 continue
             teams = profile.get('TeamIdentifier', [])
-            if teams:
-                print(teams[0])
+            profile_uuid = profile.get('UUID')
+            if teams and profile_uuid:
+                print(teams[0] + '|' + profile_uuid)
                 raise SystemExit(0)
         except Exception:
             continue
 PY
 )"
+IFS='|' read -r PROFILE_TEAM PROFILE_UUID <<< "$PROFILE_INFO"
 IDENTITY_TEAM="$(security find-identity -v -p codesigning 2>/dev/null | sed -nE 's/.*Apple Development:.*\(([A-Z0-9]{10})\).*/\1/p' | head -n 1)"
 TEAM_ID="${ETS2_CARPLAY_TEAM_ID:-${PROFILE_TEAM:-$IDENTITY_TEAM}}"
 if [ -z "$TEAM_ID" ]; then
@@ -83,15 +85,21 @@ fi
 
 printf "iPad를 빌드하고 설치합니다. 기기 화면 잠금을 풀어 두세요.\n"
 printf "Xcode Team: %s\n기기: %s\n\n" "$TEAM_ID" "$DEVICE_ID"
+if [ -n "${PROFILE_UUID:-}" ] && [ "$TEAM_ID" = "$PROFILE_TEAM" ]; then
+    printf "이 iPad에 맞는 저장된 프로필을 확인했습니다. Xcode 자동 서명으로 빌드합니다.\n"
+    PROVISIONING_ARGS=("CODE_SIGN_STYLE=Automatic")
+else
+    printf "Xcode 자동 서명으로 빌드합니다.\n"
+    PROVISIONING_ARGS=(-allowProvisioningUpdates -allowProvisioningDeviceRegistration "CODE_SIGN_STYLE=Automatic")
+fi
 set +e
 xcodebuild \
     -project "$PROJECT" \
     -scheme "$SCHEME" \
     -configuration Debug \
-    -destination "platform=iOS,id=$DEVICE_ID" \
+    -destination "generic/platform=iOS" \
     -derivedDataPath "$DERIVED_DATA" \
-    -allowProvisioningUpdates \
-    -allowProvisioningDeviceRegistration \
+    "${PROVISIONING_ARGS[@]}" \
     DEVELOPMENT_TEAM="$TEAM_ID" \
     build >"$BUILD_LOG" 2>&1
 BUILD_RESULT=$?
@@ -99,7 +107,11 @@ set -e
 if [ "$BUILD_RESULT" -ne 0 ]; then
     tail -n 35 "$BUILD_LOG"
     open -a Xcode "$PROJECT" || true
-    fail "Xcode 서명 빌드가 끝나지 않았습니다. Xcode > Settings > Accounts에서 Apple 계정에 로그인하고, 프로젝트의 Signing & Capabilities에서 본인 Team과 Bundle Identifier를 확인한 뒤 다시 실행하세요."
+    if [ -n "${PROFILE_UUID:-}" ] && [ "$TEAM_ID" = "$PROFILE_TEAM" ]; then
+        fail "저장된 Xcode 프로필로 서명하지 못했습니다. Xcode > Settings > Accounts에 Apple 계정으로 로그인하고 Team 서명을 새로 고친 뒤 다시 실행하세요."
+    else
+        fail "Xcode 서명 빌드가 끝나지 않았습니다. Xcode > Settings > Accounts에서 Apple 계정에 로그인하고, 프로젝트의 Signing & Capabilities에서 본인 Team과 Bundle Identifier를 확인한 뒤 다시 실행하세요."
+    fi
 fi
 
 APP_PATH="$DERIVED_DATA/Build/Products/Debug-iphoneos/ETS2CarPlay.app"
@@ -107,4 +119,4 @@ if [ ! -d "$APP_PATH" ]; then fail "빌드 결과 앱을 찾지 못했습니다.
 xcrun devicectl device install app --device "$DEVICE_ID" "$APP_PATH" || fail "iPad에 설치하지 못했습니다. iPad 잠금을 풀고 이 Mac을 신뢰했는지 확인하세요."
 xcrun devicectl device process launch --device "$DEVICE_ID" "$BUNDLE_ID" || fail "설치는 됐지만 앱을 시작하지 못했습니다. iPad를 잠금 해제하고 앱을 직접 여세요."
 printf "\n설치와 실행이 끝났습니다. 연결 설정은 iPad 앱의 설정 > ETS2 연결에서 진행하세요.\n"
-read -r -p "Enter를 누르면 닫습니다. " _
+read -r -p "Enter를 누르면 닫습니다. " _ || true

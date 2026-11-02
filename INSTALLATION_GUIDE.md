@@ -46,7 +46,7 @@ https://github.com/blossom0948/iPadCarPlay.git
 
 첫 Xcode 설정을 끝내고 USB로 iPad를 연결하거나 Wi-Fi 페어링을 완료한 다음에는 저장소 안의 **`Install-iPad.command`**를 두 번 눌러 설치할 수 있습니다. 앱을 빌드하고 연결된 iPad에 설치한 뒤 실행합니다. iPad는 잠금 해제해 두세요. Mac에서 스크립트 실행을 막으면 Finder에서 파일을 Control-클릭해 **열기**를 선택합니다.
 
-이 빠른 설치 명령은 Xcode와 Apple 계정 서명이 이미 준비된 경우에 씁니다. 처음 서명하는 날에는 아래 Xcode 설정 절차를 한 번 완료해야 합니다. 개발자 서명 만료 뒤에도 같은 명령을 다시 실행하면 새 빌드를 설치합니다.
+이 빠른 설치 명령은 Mac에 유효한 서명 프로필과 인증서가 있으면 그것을 자동으로 사용합니다. 맞는 프로필이 없다면 처음 한 번 Xcode에 Apple 계정으로 로그인하고 프로젝트의 Team을 선택해야 합니다. 개발자 서명 만료 뒤에도 유효한 프로필을 새로 받은 다음 같은 명령을 실행하면 빌드와 설치를 다시 할 수 있습니다.
 
 ## 2. Xcode 서명 설정
 
@@ -160,7 +160,7 @@ ETS2 창이 활성화되어 있지 않거나 조작 키가 `NONE`이면 명령�
 
 ## 구현 및 검증 상태
 
-현재 앱 소스는 **1.5.0 (빌드 13)**이며, Xcode 27.2에서 iPad 시뮬레이터용 빌드가 통과했습니다. 이 Mac의 Xcode 계정/Team 서명이 준비되지 않아 새 버전을 실제 iPad에 설치하지 못했습니다. `Install-iPad.command`를 실행하기 전에 Xcode > Settings > Accounts에서 Apple 계정으로 로그인하고 Signing & Capabilities에서 본인 Team을 선택해야 합니다. 시뮬레이터 GUI가 이 환경에 없어 화면을 시각 검수하지 못했습니다. Windows 설정 묶음의 빌드 성공과 실제 ETS2 연결은 GitHub Actions 및 Windows 게임 PC에서 별도 확인해야 합니다.
+현재 앱 소스는 **1.5.0 (빌드 13)**이며, Xcode 27.2에서 시뮬레이터 빌드가 통과했습니다. 실제 **iPad Air (4세대, iPadOS 27.0.1)**에 설치하고 실행했으며 Device Hub에서 버전을 확인하고 앱 홈 화면을 캡처했습니다. Windows 설치 묶음은 GitHub Actions에서 성공적으로 생성됐고, 실제 ETS2 운행 연결은 Windows 게임 PC에서 확인해야 합니다.
 
 실제 지도 도로 경로선은 ETS2의 SCS SDK가 제공하지 않아 표시되지 않습니다. 앱은 게임이 제공하는 목적지, 남은 거리, ETA, 제한 속도 등만 보여줍니다. 전화와 메시지는 iPadOS의 표준 작성·FaceTime 화면을 호출하며, 수신함이나 통화 기록을 앱이 읽지는 않습니다. 앱 안의 업데이트 확인도 새 릴리스 정보를 보여주는 기능입니다. iPadOS 보안상 개발용 앱을 스스로 교체 설치하지 않으며, TestFlight 또는 App Store 자동 업데이트 설정과 별도로 Xcode 개발 빌드는 Xcode에서 다시 설치해야 합니다.
 
