@@ -5,13 +5,45 @@ param(
 
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Windows.Forms
+$installLogPath = if ([string]::IsNullOrWhiteSpace($env:ETS2CP_SETUP_LOG)) {
+    Join-Path $env:TEMP "ETS2CarPlay-setup.log"
+} else {
+    $env:ETS2CP_SETUP_LOG
+}
+
+function Write-InstallLog([string]$message) {
+    $line = "[{0}] {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $message
+    try { Add-Content -LiteralPath $installLogPath -Value $line -Encoding UTF8 } catch {}
+    Write-Host $line
+}
+trap {
+    $errorText = $_ | Out-String
+    Write-InstallLog "Unexpected plugin installer error: $errorText"
+    try {
+        [System.Windows.Forms.MessageBox]::Show(
+            "플러그인 설치 중 오류가 발생했습니다.`n`n$errorText`n로그: $installLogPath",
+            "플러그인 설치 오류",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Error
+        ) | Out-Null
+    } catch {}
+    exit 1
+}
+Write-InstallLog "Plugin installer started. GameRoot='$GameRoot'; elevated flag=$Elevated"
 
 if ([string]::IsNullOrWhiteSpace($GameRoot)) {
     $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
     $dialog.Description = "Euro Truck Simulator 2 게임 폴더를 선택하세요. 안에 bin 폴더가 있어야 합니다."
     $dialog.ShowNewFolderButton = $false
     if ($dialog.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) {
-        exit 0
+        Write-InstallLog "Folder picker cancelled."
+        [System.Windows.Forms.MessageBox]::Show(
+            "폴더 선택이 취소되어 설치하지 않았습니다. 다시 실행한 뒤 ETS2 설치 폴더를 선택하세요.",
+            "ETS2 폴더 선택 취소",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information
+        ) | Out-Null
+        exit 1
     }
     $GameRoot = $dialog.SelectedPath
 }
@@ -19,6 +51,7 @@ if ([string]::IsNullOrWhiteSpace($GameRoot)) {
 $pluginSource = Join-Path $PSScriptRoot "ets2carplay_telemetry.dll"
 $pluginDirectory = Join-Path $GameRoot "bin\win_x64\plugins"
 if (-not (Test-Path $pluginSource)) {
+    Write-InstallLog "Plugin source missing: $pluginSource"
     [System.Windows.Forms.MessageBox]::Show(
         "ets2carplay_telemetry.dll이 없습니다. 다운로드한 Windows 묶음의 파일을 모두 압축 해제했는지 확인하세요.",
         "ETS2 CarPlay 플러그인 설치",
@@ -28,6 +61,7 @@ if (-not (Test-Path $pluginSource)) {
     exit 1
 }
 if (-not (Test-Path (Join-Path $GameRoot "bin\win_x64"))) {
+    Write-InstallLog "Invalid ETS2 folder: $GameRoot"
     [System.Windows.Forms.MessageBox]::Show(
         "선택한 폴더 안에서 bin\win_x64를 찾지 못했습니다. Steam의 ETS2 → 관리 → 로컬 파일 보기를 눌러 열린 Euro Truck Simulator 2 폴더를 선택하세요.",
         "ETS2 폴더를 확인하세요",
@@ -45,9 +79,12 @@ if (-not $isAdministrator -and -not $Elevated) {
     $quotedRoot = '"' + $GameRoot + '"'
     $arguments = "-NoProfile -ExecutionPolicy Bypass -File $quotedScript -GameRoot $quotedRoot -Elevated"
     try {
+        Write-InstallLog "Requesting administrator elevation for plugin installation."
         $child = Start-Process -FilePath "powershell.exe" -Verb RunAs -ArgumentList $arguments -Wait -PassThru
+        Write-InstallLog "Elevated plugin installer exit code: $($child.ExitCode)"
         if ($child.ExitCode -ne 0) { exit $child.ExitCode }
     } catch {
+        Write-InstallLog "Administrator elevation failed or was cancelled: $($_ | Out-String)"
         [System.Windows.Forms.MessageBox]::Show(
             "관리자 권한을 허용하지 않아 플러그인을 설치하지 않았습니다. 다시 실행하고 Windows 권한 안내에서 예를 누르세요.",
             "설치가 취소되었습니다",
@@ -60,6 +97,7 @@ if (-not $isAdministrator -and -not $Elevated) {
 }
 
 try {
+    Write-InstallLog "Copying plugin to $pluginDirectory"
     New-Item -ItemType Directory -Force -Path $pluginDirectory | Out-Null
     Copy-Item -Force $pluginSource (Join-Path $pluginDirectory "ets2carplay_telemetry.dll")
     [System.Windows.Forms.MessageBox]::Show(
@@ -68,7 +106,9 @@ try {
         [System.Windows.Forms.MessageBoxButtons]::OK,
         [System.Windows.Forms.MessageBoxIcon]::Information
     ) | Out-Null
+    Write-InstallLog "Plugin installation completed successfully."
 } catch {
+    Write-InstallLog "Plugin installation error: $($_ | Out-String)"
     [System.Windows.Forms.MessageBox]::Show(
         "플러그인을 복사하지 못했습니다. ETS2가 종료되어 있는지 확인한 뒤 다시 실행하세요.`n`n$($_.Exception.Message)",
         "플러그인 설치 실패",

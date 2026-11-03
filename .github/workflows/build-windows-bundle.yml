@@ -66,6 +66,9 @@ jobs:
           Copy-Item "WindowsBridge/Start-Bridge.bat" $bundle
           Copy-Item "WindowsBridge/Reset-Pairing.bat" $bundle
           Copy-Item "WindowsBridge/README-WINDOWS-QUICK-START.txt" (Join-Path $bundle "README-FIRST.txt")
+          $requiredFiles = @("BridgeServer.exe", "controls.json", "ets2carplay_telemetry.dll", "Install-ETS2Plugin.ps1", "Setup-ETS2CarPlay.ps1", "Setup-ETS2CarPlay.bat", "Start-Bridge.bat", "Reset-Pairing.bat", "README-FIRST.txt")
+          $missingFiles = $requiredFiles | Where-Object { -not (Test-Path (Join-Path $bundle $_)) }
+          if ($missingFiles) { throw ("Windows bundle is incomplete. Missing: " + ($missingFiles -join ", ")) }
 
       - name: Upload ready-to-run bundle
         uses: actions/upload-artifact@v7
