@@ -559,7 +559,7 @@ internal sealed class ClientSession : IAsyncDisposable
         {
             var result = await _socket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
             if (result.MessageType == WebSocketMessageType.Close) return null;
-            if (result.MessageType != WebSocketMessageType.Text) continue;
+            if (result.MessageType != WebSocketMessageType.Text && result.MessageType != WebSocketMessageType.Binary) continue;
             message.Write(buffer, 0, result.Count);
             if (message.Length > 32 * 1024) throw new WebSocketException("WebSocket message exceeds 32 KB.");
             if (result.EndOfMessage) break;
