@@ -1,11 +1,14 @@
-param(
+﻿param(
     [string]$GameRoot = "",
-    [switch]$Elevated
+    [switch]$Elevated,
+    [string]$LogPath = ""
 )
 
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Windows.Forms
-$installLogPath = if ([string]::IsNullOrWhiteSpace($env:ETS2CP_SETUP_LOG)) {
+$installLogPath = if (-not [string]::IsNullOrWhiteSpace($LogPath)) {
+    $LogPath
+} elseif ([string]::IsNullOrWhiteSpace($env:ETS2CP_SETUP_LOG)) {
     Join-Path $env:TEMP "ETS2CarPlay-setup.log"
 } else {
     $env:ETS2CP_SETUP_LOG

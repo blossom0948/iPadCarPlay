@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Windows.Forms
 $script:setupLogPath = if ([string]::IsNullOrWhiteSpace($env:ETS2CP_SETUP_LOG)) {
     Join-Path $env:TEMP "ETS2CarPlay-setup.log"
@@ -75,7 +75,7 @@ if (-not (Test-Path (Join-Path $gameRoot "bin\win_x64"))) {
 }
 
 $pluginInstaller = Join-Path $PSScriptRoot "Install-ETS2Plugin.ps1"
-$arguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}" -GameRoot "{1}" -Elevated' -f $pluginInstaller, $gameRoot
+$arguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}" -GameRoot "{1}" -LogPath "{2}" -Elevated' -f $pluginInstaller, $gameRoot, $script:setupLogPath
 try {
     Write-SetupLog "Starting elevated telemetry plugin installer."
     $installProcess = Start-Process -FilePath "powershell.exe" -Verb RunAs -ArgumentList $arguments -Wait -PassThru

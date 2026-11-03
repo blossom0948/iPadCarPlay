@@ -1,8 +1,9 @@
 @echo off
 setlocal
+chcp 65001 >nul
 cd /d "%~dp0"
-set "ETS2CP_SETUP_LOG=%TEMP%\ETS2CarPlay-setup.log"
-set "ETS2CP_SETUP_CONSOLE_LOG=%TEMP%\ETS2CarPlay-setup-console.log"
+set "ETS2CP_SETUP_LOG=%~dp0ETS2CarPlay-setup.log"
+set "ETS2CP_SETUP_CONSOLE_LOG=%~dp0ETS2CarPlay-setup-console.log"
 > "%ETS2CP_SETUP_LOG%" echo [%DATE% %TIME%] Launcher started from "%~dp0"
 > "%ETS2CP_SETUP_CONSOLE_LOG%" echo PowerShell setup output
 if not exist "%~dp0Setup-ETS2CarPlay.ps1" (
