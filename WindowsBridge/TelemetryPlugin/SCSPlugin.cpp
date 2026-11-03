@@ -53,6 +53,11 @@ struct TelemetryState {
     BoolField parkingBrake;
     BoolField leftIndicator;
     BoolField rightIndicator;
+    BoolField hazardWarning;
+    BoolField parkingLights;
+    BoolField lowBeam;
+    BoolField highBeam;
+    BoolField wipers;
     PlacementField position;
     StringField cargo;
     StringField sourceCity;
@@ -146,6 +151,11 @@ std::string buildSnapshot() {
         << ",\"parkingBrake\":" << boolean(state.parkingBrake)
         << ",\"leftIndicator\":" << boolean(state.leftIndicator)
         << ",\"rightIndicator\":" << boolean(state.rightIndicator)
+        << ",\"hazardWarning\":" << boolean(state.hazardWarning)
+        << ",\"parkingLights\":" << boolean(state.parkingLights)
+        << ",\"lowBeam\":" << boolean(state.lowBeam)
+        << ",\"highBeam\":" << boolean(state.highBeam)
+        << ",\"wipers\":" << boolean(state.wipers)
         << ",\"worldPosition\":";
     if (p.available) {
         out << "{\"x\":" << number(p.x, true)
@@ -399,6 +409,11 @@ extern "C" SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version, const scs_t
     registerBool(versionParams, SCS_TELEMETRY_TRUCK_CHANNEL_parking_brake, &state.parkingBrake);
     registerBool(versionParams, SCS_TELEMETRY_TRUCK_CHANNEL_lblinker, &state.leftIndicator);
     registerBool(versionParams, SCS_TELEMETRY_TRUCK_CHANNEL_rblinker, &state.rightIndicator);
+    registerBool(versionParams, SCS_TELEMETRY_TRUCK_CHANNEL_hazard_warning, &state.hazardWarning);
+    registerBool(versionParams, SCS_TELEMETRY_TRUCK_CHANNEL_light_parking, &state.parkingLights);
+    registerBool(versionParams, SCS_TELEMETRY_TRUCK_CHANNEL_light_low_beam, &state.lowBeam);
+    registerBool(versionParams, SCS_TELEMETRY_TRUCK_CHANNEL_light_high_beam, &state.highBeam);
+    registerBool(versionParams, SCS_TELEMETRY_TRUCK_CHANNEL_wipers, &state.wipers);
     versionParams->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_world_placement, SCS_U32_NIL, SCS_VALUE_TYPE_dplacement,
         SCS_TELEMETRY_CHANNEL_FLAG_no_value, storePosition, &state.position);
 

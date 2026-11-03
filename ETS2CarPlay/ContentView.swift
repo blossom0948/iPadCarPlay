@@ -11,6 +11,7 @@ struct ContentView: View {
     @StateObject private var layoutStore = AppLayoutStore()
     @StateObject private var splitShortcutStore = SplitShortcutStore()
     @StateObject private var updateChecker = AppUpdateChecker()
+    @StateObject private var youtubeBrowser = MediaWebBrowser()
     @AppStorage("selectedWallpaperID") private var selectedWallpaperID = WallpaperPreset.carPlayClassic.rawValue
     @AppStorage("speedUnit") private var speedUnit = "km/h"
     @AppStorage("showStatusBar") private var showStatusBar = true
@@ -63,7 +64,7 @@ struct ContentView: View {
                         Group {
                             if splitMediaEnabled {
                                 let pair = activeSplitPair ?? splitPairForCurrentSelection
-                                MediaSplitView(pair: pair, ratio: $splitMediaRatio) {
+                                MediaSplitView(pair: pair, ratio: $splitMediaRatio, browser: youtubeBrowser) {
                                     screen(for: pair.primary)
                                 }
                                 .padding(.horizontal, 12)
@@ -179,9 +180,9 @@ struct ContentView: View {
         case .music:
             MusicScreen(player: model.audio)
         case .youtube:
-            YouTubeScreen(initialService: .youtube)
+            YouTubeScreen(initialService: .youtube, browser: youtubeBrowser)
         case .youtubeMusic:
-            YouTubeScreen(initialService: .youtubeMusic)
+            YouTubeScreen(initialService: .youtubeMusic, browser: youtubeBrowser)
         case .phone:
             VirtualPhoneScreen(model: model)
         case .messages:
@@ -431,12 +432,14 @@ private struct SplitIconMotion: ViewModifier {
 private struct MediaSplitView<Primary: View>: View {
     let pair: SplitPair
     @Binding var ratio: Double
+    @ObservedObject var browser: MediaWebBrowser
     let primary: Primary
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(pair: SplitPair, ratio: Binding<Double>, @ViewBuilder primary: () -> Primary) {
+    init(pair: SplitPair, ratio: Binding<Double>, browser: MediaWebBrowser, @ViewBuilder primary: () -> Primary) {
         self.pair = pair
         _ratio = ratio
+        self.browser = browser
         self.primary = primary()
     }
 
@@ -455,7 +458,7 @@ private struct MediaSplitView<Primary: View>: View {
                 SplitPaneDivider(ratio: $ratio, totalWidth: usableWidth)
                     .frame(width: dividerWidth)
 
-                YouTubeScreen(initialService: pair.media)
+                YouTubeScreen(initialService: pair.media, browser: browser)
                     .id(pair.media)
                     .frame(width: usableWidth - leadingWidth)
                     .frame(maxHeight: .infinity)

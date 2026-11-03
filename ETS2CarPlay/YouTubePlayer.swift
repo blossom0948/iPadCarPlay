@@ -46,16 +46,17 @@ enum YouTubeService: String, CaseIterable, Codable, Identifiable, Hashable {
 
 struct YouTubeScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @StateObject private var browser = MediaWebBrowser()
+    @ObservedObject private var browser: MediaWebBrowser
     @State private var service: YouTubeService
     @State private var requestedURL: URL
     @State private var addressOrSearch = ""
     @State private var errorMessage: String?
     @State private var showingSafariMusic = false
 
-    init(initialService: YouTubeService = .youtube) {
+    init(initialService: YouTubeService = .youtube, browser: MediaWebBrowser) {
+        self.browser = browser
         _service = State(initialValue: initialService)
-        _requestedURL = State(initialValue: initialService.homeURL)
+        _requestedURL = State(initialValue: browser.currentURL ?? initialService.homeURL)
     }
 
     var body: some View {
@@ -114,7 +115,7 @@ struct YouTubeScreen: View {
         .onChange(of: service) { _, newService in
             errorMessage = nil
             addressOrSearch = ""
-            requestedURL = newService.homeURL
+            requestedURL = newService == .youtube ? (browser.currentURL ?? newService.homeURL) : newService.homeURL
         }
     }
 
@@ -330,14 +331,54 @@ private struct YouTubeMusicSafariView: UIViewControllerRepresentable {
 }
 
 @MainActor
-private final class MediaWebBrowser: ObservableObject {
+final class MediaWebBrowser: ObservableObject {
+    private let lastURLKey = "youtube.lastVisitedURL"
     @Published var isLoading = false
     @Published var canGoBack = false
     @Published var canGoForward = false
-    weak var webView: WKWebView?
+    @Published private(set) var currentURL: URL? = MediaWebBrowser.savedYouTubeURL()
+    var webView: WKWebView?
+
+    private static func savedYouTubeURL() -> URL? {
+        guard let value = UserDefaults.standard.string(forKey: "youtube.lastVisitedURL"),
+              let url = URL(string: value), isYouTubeURL(url) else { return nil }
+        return url
+    }
+
+    private static func isYouTubeURL(_ url: URL) -> Bool {
+        guard url.scheme?.lowercased() == "https", let host = url.host?.lowercased() else { return false }
+        return host == "youtube.com" || host.hasSuffix(".youtube.com") || host == "youtu.be"
+    }
+
+    private func remember(_ url: URL) {
+        guard Self.isYouTubeURL(url) else { return }
+        currentURL = url
+        UserDefaults.standard.set(url.absoluteString, forKey: lastURLKey)
+    }
 
     func attach(_ webView: WKWebView) {
         self.webView = webView
+        if currentURL == nil, let url = webView.url { remember(url) }
+        refreshNavigationState()
+    }
+
+    func load(_ url: URL) {
+        guard let webView else {
+            currentURL = url
+            return
+        }
+        if webView.url == url && !webView.isLoading {
+            remember(url)
+            refreshNavigationState()
+            return
+        }
+        remember(url)
+        webView.load(URLRequest(url: url))
+        refreshNavigationState()
+    }
+
+    func navigationFinished(at url: URL?) {
+        if let url { remember(url) }
         refreshNavigationState()
     }
 
@@ -358,6 +399,13 @@ private struct YouTubeWebView: UIViewRepresentable {
     @ObservedObject var browser: MediaWebBrowser
 
     func makeUIView(context: Context) -> WKWebView {
+        if let retainedWebView = browser.webView {
+            retainedWebView.navigationDelegate = context.coordinator
+            context.coordinator.lastRequestedURL = browser.currentURL ?? retainedWebView.url ?? url
+            browser.attach(retainedWebView)
+            return retainedWebView
+        }
+
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = [.audio, .video]
@@ -371,16 +419,18 @@ private struct YouTubeWebView: UIViewRepresentable {
         webView.allowsBackForwardNavigationGestures = true
         webView.allowsLinkPreview = true
 
-        context.coordinator.lastRequestedURL = url
         browser.attach(webView)
-        webView.load(URLRequest(url: url))
+        let initialURL = browser.currentURL ?? url
+        context.coordinator.lastRequestedURL = initialURL
+        browser.load(initialURL)
         return webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
         guard context.coordinator.lastRequestedURL != url else { return }
         context.coordinator.lastRequestedURL = url
-        webView.load(URLRequest(url: url))
+        guard webView.url != url else { return }
+        browser.load(url)
         browser.refreshNavigationState()
     }
 
@@ -402,7 +452,7 @@ private struct YouTubeWebView: UIViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             browser.isLoading = false
-            browser.refreshNavigationState()
+            browser.navigationFinished(at: webView.url)
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

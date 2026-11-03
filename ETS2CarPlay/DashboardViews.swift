@@ -184,9 +184,10 @@ private struct NavigationMetric: View {
 struct TruckTelemetryCard: View {
     let snapshot: TelemetrySnapshot?
     let speedUnit: String
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 11) {
             HStack {
                 Label("차량", systemImage: "steeringwheel")
                     .font(.system(size: 14, weight: .bold))
@@ -198,42 +199,71 @@ struct TruckTelemetryCard: View {
             }
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(speedText)
-                    .font(.system(size: 50, weight: .bold, design: .rounded))
+                    .font(.system(size: 46, weight: .bold, design: .rounded))
                     .monospacedDigit()
+                    .foregroundStyle(isOverspeed ? Color.red : Color.white)
+                    .contentTransition(.numericText())
                 Text(speedUnit)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.66))
                 Spacer()
-                Text("기어 \(snapshot?.gear.map(String.init) ?? "—")")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text("기어 \(snapshot?.gear.map(String.init) ?? "—")")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                    Text(snapshot?.engineRpm.map { "\(Int($0.rounded())) RPM" } ?? "RPM —")
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.55))
+                }
             }
-            HStack(spacing: 12) {
-                MiniGauge(title: "연료", value: snapshot?.fuelPercent.map { "\(Int($0.rounded()))%" } ?? "—", symbol: "fuelpump.fill")
-                MiniGauge(title: "RPM", value: snapshot?.engineRpm.map { "\(Int($0.rounded()))" } ?? "—", symbol: "gauge.with.needle.fill")
+
+            VStack(spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(systemName: "fuelpump.fill")
+                        .foregroundStyle(fuelColor)
+                    Text("연료")
+                        .foregroundStyle(.white.opacity(0.65))
+                    Spacer()
+                    Text(fuelLabel)
+                        .fontWeight(.bold)
+                        .monospacedDigit()
+                    Text(fuelCapacityLabel)
+                        .foregroundStyle(.white.opacity(0.55))
+                        .monospacedDigit()
+                }
+                .font(.system(size: 11, weight: .semibold))
+
+                ProgressView(value: snapshot?.fuelPercent.map { $0 / 100 } ?? 0)
+                    .tint(fuelColor)
+                    .scaleEffect(x: 1, y: 1.35, anchor: .center)
+                    .opacity(snapshot?.fuelPercent == nil ? 0.38 : 1)
             }
-            if let capacity = snapshot?.fuelCapacityLiters, let fuel = snapshot?.fuelLiters {
-                Text("연료 \(fuel.formatted(.number.precision(.fractionLength(0...1)))) / \(capacity.formatted(.number.precision(.fractionLength(0...1)))) L")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.55))
-            }
-            FuelRouteInsight(snapshot: snapshot)
-            HStack(spacing: 9) {
-                DriveCountdownInsight(
-                    title: "휴식까지",
-                    minutes: [snapshot?.nextMandatoryBreakMinutes, snapshot?.nextRestStopMinutes]
-                        .compactMap { $0 }
-                        .filter { $0 >= 0 }
-                        .min(),
-                    emptyText: "미사용"
+
+            HStack(spacing: 8) {
+                VehicleStatusTile(
+                    title: "방향지시등",
+                    detail: indicatorLabel,
+                    symbol: indicatorSymbol,
+                    active: indicatorActive,
+                    tint: .orange,
+                    animate: indicatorActive && !reduceMotion
                 )
-                DriveCountdownInsight(
-                    title: "배송 마감",
-                    minutes: snapshot?.minutesUntilDeliveryDeadline,
-                    emptyText: "정보 없음"
+                VehicleStatusTile(
+                    title: "와이퍼",
+                    detail: snapshot?.wipers.map { $0 ? "켜짐" : "꺼짐" } ?? "정보 없음",
+                    symbol: "drop.fill",
+                    active: snapshot?.wipers == true,
+                    tint: .cyan
+                )
+                VehicleStatusTile(
+                    title: "전조등",
+                    detail: lightLabel,
+                    symbol: "headlight.high.beam.fill",
+                    active: lightActive,
+                    tint: .yellow
                 )
             }
         }
-        .padding(20)
+        .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .dashboardCard(cornerRadius: 24)
     }
@@ -242,6 +272,94 @@ struct TruckTelemetryCard: View {
         guard let snapshot else { return "—" }
         let speed = speedUnit == "mph" ? snapshot.speedMph : snapshot.speedKph
         return speed.map { String(Int(abs($0).rounded())) } ?? "—"
+    }
+
+    private var isOverspeed: Bool {
+        guard let snapshot,
+              let rawSpeed = speedUnit == "mph" ? snapshot.speedMph : snapshot.speedKph,
+              let rawLimit = speedUnit == "mph" ? snapshot.speedLimitKph.map({ $0 / 1.609344 }) : snapshot.speedLimitKph,
+              rawLimit > 0 else { return false }
+        return abs(rawSpeed) > rawLimit + 1
+    }
+
+    private var fuelLabel: String {
+        snapshot?.fuelPercent.map { "\(Int($0.rounded()))%" } ?? "—"
+    }
+
+    private var fuelCapacityLabel: String {
+        guard let fuel = snapshot?.fuelLiters, let capacity = snapshot?.fuelCapacityLiters else { return "" }
+        return "\(fuel.formatted(.number.precision(.fractionLength(0...1)))) / \(capacity.formatted(.number.precision(.fractionLength(0...1)))) L"
+    }
+
+    private var fuelColor: Color {
+        guard let percent = snapshot?.fuelPercent else { return .white.opacity(0.5) }
+        return percent < 12 ? .red : (percent < 25 ? .orange : .green)
+    }
+
+    private var indicatorActive: Bool {
+        snapshot?.hazardWarning == true || snapshot?.leftIndicator == true || snapshot?.rightIndicator == true
+    }
+
+    private var indicatorSymbol: String {
+        if snapshot?.hazardWarning == true || (snapshot?.leftIndicator == true && snapshot?.rightIndicator == true) {
+            return "exclamationmark.triangle.fill"
+        }
+        if snapshot?.leftIndicator == true { return "arrow.left" }
+        if snapshot?.rightIndicator == true { return "arrow.right" }
+        return "arrow.left.arrow.right"
+    }
+
+    private var indicatorLabel: String {
+        if snapshot?.hazardWarning == true || (snapshot?.leftIndicator == true && snapshot?.rightIndicator == true) { return "비상등" }
+        if snapshot?.leftIndicator == true { return "좌회전" }
+        if snapshot?.rightIndicator == true { return "우회전" }
+        if snapshot?.leftIndicator == nil && snapshot?.rightIndicator == nil && snapshot?.hazardWarning == nil { return "정보 없음" }
+        return "꺼짐"
+    }
+
+    private var lightActive: Bool {
+        snapshot?.parkingLights == true || snapshot?.lowBeam == true || snapshot?.highBeam == true
+    }
+
+    private var lightLabel: String {
+        if snapshot?.highBeam == true { return "상향등" }
+        if snapshot?.lowBeam == true { return "하향등" }
+        if snapshot?.parkingLights == true { return "미등" }
+        if snapshot?.parkingLights == nil && snapshot?.lowBeam == nil && snapshot?.highBeam == nil { return "정보 없음" }
+        return "꺼짐"
+    }
+}
+
+private struct VehicleStatusTile: View {
+    let title: String
+    let detail: String
+    let symbol: String
+    let active: Bool
+    let tint: Color
+    var animate = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Image(systemName: symbol)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(active ? tint : Color.white.opacity(0.52))
+                .symbolEffect(.pulse, options: .repeating, isActive: animate)
+            Text(title)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(.white.opacity(0.55))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+            Text(detail)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(.white.opacity(active ? 0.96 : 0.74))
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 8)
+        .background(Color.white.opacity(active ? 0.09 : 0.055), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(active ? tint.opacity(0.27) : Color.white.opacity(0.06), lineWidth: 1))
     }
 }
 

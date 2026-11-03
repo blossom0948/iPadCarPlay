@@ -8,6 +8,8 @@ iPad에서 실행하는 ETS2 대시보드입니다. iPad Air와 iPadOS 27을 대
 ## 포함 기능
 
 - ETS2 속도, RPM, 기어, 연료, 제한 속도, 남은 거리와 ETA를 실시간 표시
+- 실제 지도 위 트럭 위치·이동 흔적, 속도 제한 표지와 과속 시 빨간 속도 표시
+- 차량 패널에 방향지시등, 비상등, 와이퍼, 전조등, 연료 게이지 표시
 - 현재 연료 주행거리와 목적지 거리를 비교해 도착 가능 여부와 주유 시점을 표시
 - ETS2 게임 시간 기준 다음 휴식과 배송 마감 카운트다운·조기 경보
 - 목적지, 배송, 벌금, 통행료 이벤트 수신
@@ -22,6 +24,7 @@ iPad에서 실행하는 ETS2 대시보드입니다. iPad Air와 iPadOS 27을 대
 - Apple Music 카탈로그 검색·재생과 iPad에 가져온 오디오 파일 재생, Apple Music 앱의 현재 곡 표시, 잠금 화면 제어
 - 앱 실행 시 GitHub 공개 릴리스에서 새 버전과 변경 내용을 자동 확인
 - 앱 안에서 YouTube와 YouTube Music 공식 웹 화면 열기
+- YouTube 화면을 벗어났다가 돌아와도 열린 페이지와 브라우저 기록 유지
 - 대시보드와 YouTube/YouTube Music을 한 화면에 두는 크기 조절 분할 보기
 - 4×2 홈 화면에 한 페이지 최대 8개 아이콘, 최근·즐겨찾기 분할 조합, 한 번 탭으로 홈 이동
 - 앱 배경, 개인 사진, 앱 아이콘 순서와 표시, 화면 모드, 속도 단위, 알림 기준 사용자화
@@ -34,6 +37,8 @@ iPad에서 실행하는 ETS2 대시보드입니다. iPad Air와 iPadOS 27을 대
 앱은 가로와 세로 iPad 화면을 모두 채우며, 기본 비율은 iPad 전체 화면입니다. 홈 화면은 화면 가장자리까지 이어지고 한 페이지에 앱 아이콘 8개를 4×2로 표시합니다. 아이콘 크기는 **설정 → 디스플레이**에서 슬라이더로 조절할 수 있습니다. 설정, 대시보드 등 앱 안의 창과 글에는 별도 간격을 둡니다. 최근 또는 즐겨찾기 분할 조합을 홈 아래에서 다시 열 수 있고, 왼쪽 도크의 홈 버튼은 분할 화면에서도 한 번 눌러 홈으로 돌아갑니다. 앱 화면 아이콘은 Apple SF Symbols 시스템 심볼을 사용하며, Apple 앱의 상표 아이콘을 복제하지 않습니다. 설정에서 CarPlay 8:3 와이드 화면 비율을 선택할 수 있습니다. 왼쪽 도크의 분할 보기 버튼을 누르면 대시보드와 YouTube 또는 YouTube Music을 나란히 표시하고 가운데 손잡이를 끌어 너비를 조절합니다. 화면 재질과 전환은 보내주신 Liquid Glass 안내와 iPad의 동작 줄이기 설정을 참고합니다. 배경화면 메뉴에는 CarPlay용 자체 테마와 사진 보관함 선택이 있습니다. 실제 차량에 내장된 공식 CarPlay 배경은 차량의 CarPlay 설정에서 고르는 항목이며, 이 앱에서 불러올 수 있는 이미지 파일이나 공개 API는 Apple이 제공하지 않습니다. 운행 화면은 실제 ETS2 데이터가 없으면 연결 및 대기 상태만 보여주며, 임의 속도·목적지·경로를 만들지 않습니다. 와이드 선택은 [Apple CarPlay 디자인 가이드](https://developer.apple.com/design/human-interface-guidelines/carplay)의 화면 비율을 참고합니다.
 
 설정 첫 화면은 CarPlay식 큰 터치 메뉴이며, 배경화면 선택은 별도 화면으로 열립니다. 연결 정보는 앱 안의 숫자판으로 입력할 수 있어 iPadOS 키보드가 표시되지 않는 상황에서도 페어링할 수 있습니다. 화면 재질과 전환은 보내주신 Liquid Glass 가이드와 [Apple Human Interface Guidelines의 Materials](https://developer.apple.com/design/human-interface-guidelines/materials), [Liquid Glass 적용 안내](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass)를 참고했습니다.
+
+내비게이션 지도는 ETS2 월드 좌표를 지도 좌표로 투영해 트럭의 현재 위치와 주행 흔적을 표시합니다. Apple 지도는 게임 지도와 완전히 겹치지 않을 수 있고, ETS2 텔레메트리는 실제 회전 지시가 포함된 경로 모양을 제공하지 않으므로 게임의 남은 거리·도착 예상·제한 속도와 앱이 기록한 이동 흔적을 보여줍니다. 좌표 변환은 [truckermudgeon/maps의 ETS2 투영 구현](https://github.com/truckermudgeon/maps/blob/main/packages/libs/map/projections.ts)을 참고했습니다. 지도 타일은 인터넷 연결이 있을 때 더 잘 표시됩니다.
 
 ## 구조
 
@@ -60,7 +65,7 @@ Mac에 저장소를 받은 뒤에는 `Install-iPad.command`를 두 번 눌러 �
 
 ### 이번 화면 개편 빌드 확인
 
-Xcode 27.2의 iPad 시뮬레이터 빌드가 통과했고, 실제 **iPad Air (4세대, iPadOS 27.0.1)**에 **1.5.0 (빌드 13)**을 설치하고 실행했습니다. Device Hub에서 버전을 확인하고 실제 홈 화면도 캡처해 확인했습니다. 이 버전에는 목적지 전 연료 판단, 게임 시간 기준 휴식·배송 마감 정보, 애니메이션 상태 피드백과 Mac 원클릭 설치 명령이 포함됩니다. Xcode는 App Intents 메타데이터 생성을 건너뛰었다는 비치명 경고를 남겼습니다(앱은 App Intents를 사용하지 않습니다). ETS2 실시간 운행 연동은 Windows 게임 PC에서 확인해야 합니다. Windows 설치 묶음은 GitHub Actions 빌드에서 생성됩니다.
+현재 소스는 **1.6.0 (빌드 14)**입니다. Xcode 27.2에서 iPad 시뮬레이터 빌드를 확인했습니다. 실제 iPad와 Windows ETS2 간 지도 위치·차량 상태 신호는 연결된 게임에서 확인해야 합니다. Windows 브리지와 텔레메트리 DLL 설치 묶음은 GitHub Actions 빌드에서 생성됩니다.
 
 ## 앱 업데이트
 
@@ -93,7 +98,7 @@ Windows PC에서 인터넷을 쓸 수 없다면 Mac이나 인터넷이 되는 �
 1. [저장소의 Actions 빌드 목록](https://github.com/blossom0948/iPadCarPlay/actions/workflows/build-windows-bundle.yml)을 엽니다.
 2. 가장 최근의 **Build Windows install bundle** 실행을 누르고, 완료 표시(초록색 체크)가 있는지 확인합니다.
 3. 해당 실행 화면 아래 **Artifacts**에서 `ETS2CarPlay-Windows`를 내려받아 압축을 풉니다. 압축 안의 `README-FIRST.txt`도 참고할 수 있습니다.
-4. ETS2와 실행 중인 브리지 창을 닫고 `Setup-ETS2CarPlay.bat`을 두 번 누릅니다. 기본 Steam 위치에서 ETS2를 찾으면 확인만 누르고, 다른 폴더에 설치했다면 게임 폴더를 선택합니다. Windows 권한 확인에서 **예**를 누릅니다. 설치가 끝나면 바탕 화면에 **ETS2 CarPlay 브리지** 바로 가기가 생깁니다. 업데이트할 때도 먼저 ETS2와 브리지 창을 닫습니다.
+4. ETS2와 실행 중인 브리지 창을 닫고 `Setup-ETS2CarPlay.bat`을 두 번 누릅니다. 기본 Steam 위치에서 ETS2를 찾으면 확인만 누르고, 다른 폴더에 설치했다면 게임 폴더를 선택합니다. Windows 권한 확인에서 **예**를 누릅니다. 설치가 끝나면 바탕 화면에 **ETS2 CarPlay 브리지** 바로 가기가 생깁니다. 업데이트할 때도 최신 ZIP을 받아 같은 절차로 다시 설치합니다. 이 버전의 방향지시등·조명·와이퍼 표시에는 새 텔레메트리 DLL이 필요합니다.
 5. 매번 ETS2를 할 때 바탕 화면의 **ETS2 CarPlay 브리지**를 두 번 누르고 검은 창을 열어 둡니다. Windows 방화벽이 묻는 경우 **개인 네트워크에서만 허용**합니다. 첫 실행에만 표시되는 코드를 iPad에 입력하면 이후 브리지 재시작은 자동 재연결됩니다.
 6. iPad와 Windows PC가 같은 공유기 네트워크에 있는지 확인합니다. 앱에서 **설정 → ETS2 연결**을 열고 **Windows PC 주소** 행을 눌러 앱 안 숫자판에 브리지 창의 IPv4 주소를 입력합니다. 포트는 `8765` 그대로 둡니다. **6자리 페어링 코드** 행을 눌러 코드를 입력하고 **연결 또는 페어링**을 누릅니다. iPad 키보드가 표시되지 않아도 앱 안 숫자판으로 입력할 수 있습니다. `127.0.0.1`은 입력하지 않습니다.
 7. ETS2를 실행하고 저장된 프로필을 불러와 운행을 시작합니다. 브리지 창은 운행 중 계속 열어 둡니다.

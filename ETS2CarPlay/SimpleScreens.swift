@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 import MusicKit
 import MessageUI
 import UIKit
+import MapKit
 
 struct AppsScreen: View {
     @ObservedObject var layoutStore: AppLayoutStore
@@ -249,6 +250,15 @@ struct NavigationScreen: View {
     @ObservedObject var model: AppModel
     @ObservedObject private var bridge: BridgeConnectionManager
     let speedUnit: String
+    @State private var cameraPosition = MapCameraPosition.region(
+        MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 50, longitude: 15),
+            span: MKCoordinateSpan(latitudeDelta: 0.22, longitudeDelta: 0.30)
+        )
+    )
+    @State private var breadcrumbs: [ETS2MapCoordinate] = []
+    @State private var followsTruck = true
+    @State private var lastCameraCoordinate: ETS2MapCoordinate?
 
     init(model: AppModel, speedUnit: String) {
         self.model = model
@@ -260,9 +270,9 @@ struct NavigationScreen: View {
         VStack(alignment: .leading, spacing: 17) {
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("내비게이션")
+                    Text("실시간 내비게이션")
                         .font(.system(size: 29, weight: .bold, design: .rounded))
-                    Text("게임에서 받은 실제 안내 정보")
+                    Text("ETS2 위치 · 현재 속도 · 제한 속도")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.white.opacity(0.64))
                 }
@@ -276,93 +286,293 @@ struct NavigationScreen: View {
             }
 
             GeometryReader { geometry in
-                if geometry.size.width < 720 {
-                    ScrollView(.vertical) {
-                        VStack(spacing: 12) {
-                            NavigationDataCard(snapshot: bridge.snapshot, gameState: bridge.gameState)
-                                .frame(minHeight: max(250, geometry.size.height * 0.48))
-                            HStack(spacing: 12) {
-                                TruckTelemetryCard(snapshot: bridge.snapshot, speedUnit: speedUnit)
-                                    .frame(minHeight: 210)
-                                WorldPositionCard(position: bridge.snapshot?.worldPosition)
-                                    .frame(minHeight: 210)
-                            }
-                        }
-                        .padding(.vertical, 2)
-                    }
-                    .scrollIndicators(.hidden)
-                } else {
-                    HStack(spacing: 15) {
-                        NavigationDataCard(snapshot: bridge.snapshot, gameState: bridge.gameState)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                if geometry.size.width >= 700 {
+                    HStack(spacing: 14) {
+                        liveMap
                         VStack(spacing: 14) {
-                            TruckTelemetryCard(snapshot: bridge.snapshot, speedUnit: speedUnit)
+                            NavigationSpeedPanel(snapshot: bridge.snapshot, speedUnit: speedUnit)
                                 .frame(maxHeight: .infinity)
-                            WorldPositionCard(position: bridge.snapshot?.worldPosition)
+                            NavigationRoutePanel(snapshot: bridge.snapshot)
                                 .frame(maxHeight: .infinity)
                         }
-                        .frame(width: min(300, geometry.size.width * 0.32))
+                        .frame(width: min(310, geometry.size.width * 0.32))
+                    }
+                } else {
+                    VStack(spacing: 12) {
+                        liveMap
+                            .frame(minHeight: max(220, geometry.size.height * 0.58))
+                        HStack(spacing: 12) {
+                            NavigationSpeedPanel(snapshot: bridge.snapshot, speedUnit: speedUnit)
+                            NavigationRoutePanel(snapshot: bridge.snapshot)
+                        }
+                        .frame(minHeight: 155)
                     }
                 }
             }
-
-            HStack(spacing: 12) {
-                Image(systemName: "info.circle.fill")
-                    .foregroundStyle(.cyan)
-                Text("SCS 게임 좌표는 위도·경도가 아니므로 외부 지도 위에 도로 경로로 표시하지 않습니다.")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.66))
-                Spacer()
-                Button {
-                    let snapshot = bridge.snapshot
-                    let answer = snapshot.flatMap { value -> String? in
-                        guard let distance = value.navigationDistanceKm else { return nil }
-                        return "목적지까지 \(distance.formatted(.number.precision(.fractionLength(0...1))))킬로미터 남았습니다."
-                    } ?? "실제 내비게이션 거리를 받을 수 없습니다."
-                    model.voice.speak(answer, audioPlayer: model.audio)
-                } label: {
-                    Label("거리 듣기", systemImage: "speaker.wave.2.fill")
-                        .font(.system(size: 11, weight: .semibold))
-                }
-                .buttonStyle(.plain)
-                .disabled(bridge.snapshot?.navigationDistanceKm == nil)
+            .onAppear { updatePosition(bridge.snapshot?.worldPosition, force: true) }
+            .onChange(of: bridge.snapshot?.worldPosition) { _, position in updatePosition(position) }
+            .onChange(of: cameraPosition.positionedByUser) { _, didPan in
+                if didPan { followsTruck = false }
             }
-            .padding(.horizontal, 15)
-            .padding(.vertical, 11)
-            .dashboardCard(cornerRadius: 16)
+        }
+    }
+
+    private var liveMap: some View {
+        Map(position: $cameraPosition, interactionModes: [.pan, .zoom, .rotate]) {
+            if breadcrumbs.count > 1 {
+                MapPolyline(coordinates: breadcrumbs.map(\.coordinate))
+                    .stroke(Color.cyan.opacity(0.92), lineWidth: 5)
+            }
+            if let position = bridge.snapshot?.worldPosition,
+               let coordinate = ETS2MapProjection.coordinate(from: position) {
+                Annotation("내 트럭", coordinate: coordinate.coordinate, anchor: .center) {
+                    Image(systemName: "truck.box.fill")
+                        .font(.system(size: 19, weight: .bold))
+                        .foregroundStyle(.white)
+                        .rotationEffect(.degrees(position.headingDegrees ?? 0))
+                        .frame(width: 42, height: 42)
+                        .background(Color.blue.gradient, in: Circle())
+                        .overlay(Circle().stroke(.white, lineWidth: 2.5))
+                        .shadow(color: .black.opacity(0.35), radius: 7, y: 3)
+                }
+            }
+        }
+        .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .excludingAll))
+        .mapControls { MapCompass(); MapScaleView() }
+        .overlay(alignment: .topLeading) {
+            Label("ETS2 실시간 위치", systemImage: "location.fill")
+                .font(.system(size: 12, weight: .bold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(.ultraThinMaterial, in: Capsule())
+                .padding(14)
+        }
+        .overlay(alignment: .bottomLeading) {
+            Text(bridge.snapshot?.destinationCity.map { "목적지 · \($0)" } ?? "ETS2 위치 수신 대기 중")
+                .font(.system(size: 11, weight: .semibold))
+                .lineLimit(1)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(.ultraThinMaterial, in: Capsule())
+                .padding(14)
+        }
+        .overlay(alignment: .bottomTrailing) {
+            Button {
+                followsTruck = true
+                updatePosition(bridge.snapshot?.worldPosition, force: true)
+            } label: {
+                Image(systemName: followsTruck ? "location.fill" : "location")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 42, height: 42)
+                    .background(.ultraThinMaterial, in: Circle())
+            }
+            .buttonStyle(CarPlayPressButtonStyle(pressedScale: 0.91))
+            .accessibilityLabel("트럭 위치 따라가기")
+            .padding(14)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(Color.white.opacity(0.14), lineWidth: 1))
+    }
+
+    private func updatePosition(_ position: GameWorldPosition?, force: Bool = false) {
+        guard let position, let coordinate = ETS2MapProjection.coordinate(from: position) else { return }
+        if let last = breadcrumbs.last {
+            let distance = CLLocation(latitude: last.latitude, longitude: last.longitude)
+                .distance(from: CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude))
+            if distance >= 18 {
+                breadcrumbs.append(coordinate)
+                if breadcrumbs.count > 180 { breadcrumbs.removeFirst(breadcrumbs.count - 180) }
+            }
+        } else {
+            breadcrumbs = [coordinate]
+        }
+        let shouldMoveCamera = force || (lastCameraCoordinate.map({
+            CLLocation(latitude: $0.latitude, longitude: $0.longitude)
+                .distance(from: CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)) >= 80
+        }) ?? true)
+        guard followsTruck, shouldMoveCamera else { return }
+        lastCameraCoordinate = coordinate
+        withAnimation(.easeInOut(duration: 0.55)) {
+            cameraPosition = .region(MKCoordinateRegion(
+                center: coordinate.coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.085, longitudeDelta: 0.12)
+            ))
         }
     }
 }
 
-private struct WorldPositionCard: View {
-    let position: GameWorldPosition?
+private struct NavigationSpeedPanel: View {
+    let snapshot: TelemetrySnapshot?
+    let speedUnit: String
+
+    private var speed: Double? { speedUnit == "mph" ? snapshot?.speedMph : snapshot?.speedKph }
+    private var limit: Double? { speedUnit == "mph" ? snapshot?.speedLimitKph.map { $0 / 1.609344 } : snapshot?.speedLimitKph }
+    private var isOverspeed: Bool { speed.flatMap { current in limit.map { current > $0 + 1 } } ?? false }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label("게임 좌표", systemImage: "location.circle.fill")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.75))
-            if let position {
-                Text("X \(position.x.formatted(.number.precision(.fractionLength(0...1))))")
-                Text("Y \(position.y.formatted(.number.precision(.fractionLength(0...1))))")
-                Text("Z \(position.z.formatted(.number.precision(.fractionLength(0...1))))")
-                if let heading = position.headingDegrees {
-                    Text("방향 \(Int(heading.rounded()))°")
-                }
-            } else {
-                Text("실제 좌표 수신 대기")
-                    .font(.system(size: 12, weight: .medium))
+        VStack(alignment: .leading, spacing: 15) {
+            HStack {
+                Label("현재 속도", systemImage: "speedometer")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.68))
+                Spacer(minLength: 4)
+                Text("\(speedUnit)")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.55))
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                Text(speed.map { String(Int(abs($0).rounded())) } ?? "—")
+                    .font(.system(size: 58, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .foregroundStyle(isOverspeed ? Color.red : Color.white)
+                Text(speedUnit == "mph" ? "mph" : "km/h")
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.58))
             }
+            HStack(spacing: 12) {
+                SpeedLimitSign(value: limit.map { Int($0.rounded()) }, unit: speedUnit == "mph" ? "mph" : "km/h")
+                    .frame(width: 84, height: 84)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(isOverspeed ? "제한 속도 초과" : "제한 속도 준수")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(isOverspeed ? Color.red : Color.green)
+                    Text(limit.map { "제한 \(Int($0.rounded())) \(speedUnit)" } ?? "게임에서 제한 속도를 기다리는 중")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.63))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
             Spacer(minLength: 0)
-            Text("게임 월드 단위 · GPS 좌표가 아님")
+            Text("속도 제한은 ETS2 텔레메트리 기준")
                 .font(.system(size: 9, weight: .medium))
                 .foregroundStyle(.white.opacity(0.48))
         }
-        .font(.system(size: 12, weight: .semibold, design: .rounded).monospacedDigit())
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .padding(16)
-        .dashboardCard(cornerRadius: 22)
+        .padding(17)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .dashboardCard(cornerRadius: 24)
+    }
+}
+
+private struct SpeedLimitSign: View {
+    let value: Int?
+    let unit: String
+
+    var body: some View {
+        VStack(spacing: 1) {
+            Text(value.map(String.init) ?? "—")
+                .font(.system(size: 28, weight: .heavy, design: .rounded))
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
+                .monospacedDigit()
+            Text(unit)
+                .font(.system(size: 8, weight: .bold))
+        }
+        .foregroundStyle(.black)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.white, in: Circle())
+        .overlay(Circle().stroke(Color.red, lineWidth: 6))
+        .shadow(color: .black.opacity(0.22), radius: 5, y: 3)
+    }
+}
+
+private struct NavigationRoutePanel: View {
+    let snapshot: TelemetrySnapshot?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("경로 정보", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(.white.opacity(0.74))
+            VStack(alignment: .leading, spacing: 4) {
+                Text("목적지")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.52))
+                Text(snapshot?.destinationCity ?? "게임에서 경로 대기 중")
+                    .font(.system(size: 21, weight: .bold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                Text(snapshot?.destinationCompany ?? snapshot?.cargo ?? "")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.6))
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+            HStack(spacing: 0) {
+                routeMetric("남은 거리", snapshot?.navigationDistanceKm.map { "\($0.formatted(.number.precision(.fractionLength(0...1)))) km" } ?? "—")
+                Rectangle().fill(Color.white.opacity(0.15)).frame(width: 1, height: 34).padding(.horizontal, 12)
+                routeMetric("도착 예상", snapshot?.navigationEtaSeconds.map(formatDuration) ?? "—")
+            }
+            Text("지도는 트럭 위치와 이동 흔적을 표시합니다. 게임 경로선 데이터는 브리지에서 제공되지 않습니다.")
+                .font(.system(size: 9, weight: .medium))
+                .lineSpacing(2)
+                .foregroundStyle(.white.opacity(0.46))
+        }
+        .padding(17)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .dashboardCard(cornerRadius: 24)
+    }
+
+    private func routeMetric(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title).font(.system(size: 9, weight: .medium)).foregroundStyle(.white.opacity(0.52))
+            Text(value).font(.system(size: 14, weight: .bold, design: .rounded)).monospacedDigit().lineLimit(1).minimumScaleFactor(0.78)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func formatDuration(_ seconds: Double) -> String {
+        guard seconds.isFinite, seconds >= 0 else { return "—" }
+        let minutes = Int(seconds / 60)
+        return minutes >= 60 ? "\(minutes / 60)시간 \(minutes % 60)분" : "\(minutes)분"
+    }
+}
+
+private struct ETS2MapCoordinate: Equatable {
+    let latitude: Double
+    let longitude: Double
+    var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: latitude, longitude: longitude) }
+}
+
+private enum ETS2MapProjection {
+    private static let earthRadius = 6_370_997.0
+    private static let lengthOfDegree = earthRadius * Double.pi / 180
+    private static let standardParallel1 = 37.0 * Double.pi / 180
+    private static let standardParallel2 = 65.0 * Double.pi / 180
+    private static let originLatitude = 50.0 * Double.pi / 180
+    private static let originLongitude = 15.0 * Double.pi / 180
+    private static let mapFactorX = 0.0001729241463
+    private static let mapFactorY = -0.000171570875
+    private static let mapOffsetX = 16_660.0
+    private static let mapOffsetZ = 4_150.0
+
+    static func coordinate(from position: GameWorldPosition) -> ETS2MapCoordinate? {
+        var x = position.x - mapOffsetX
+        var y = position.z - mapOffsetZ
+        let sectorX = floor(position.x / 4_000)
+        let sectorY = floor(position.z / 4_000)
+        let isUK = sectorX <= -8 && sectorY <= -2 && !(sectorX == -8 && sectorY == -2)
+        if isUK {
+            x = (x - 31_100 / 2) * 0.75
+            y = (y - 5_500 / 2) * 0.75
+        }
+
+        let projectedX = x * mapFactorX * lengthOfDegree
+        let projectedY = y * mapFactorY * lengthOfDegree
+        let n = log(cos(standardParallel1) / cos(standardParallel2)) /
+            log(tan(Double.pi / 4 + standardParallel2 / 2) / tan(Double.pi / 4 + standardParallel1 / 2))
+        let f = cos(standardParallel1) * pow(tan(Double.pi / 4 + standardParallel1 / 2), n) / n
+        let rho0 = earthRadius * f / pow(tan(Double.pi / 4 + originLatitude / 2), n)
+        let rho = (n < 0 ? -1.0 : 1.0) * hypot(projectedX, rho0 - projectedY)
+        guard rho.isFinite, rho != 0 else { return nil }
+        let theta = atan2(projectedX, rho0 - projectedY)
+        let latitude = 2 * atan(pow(earthRadius * f / rho, 1 / n)) - Double.pi / 2
+        let longitude = originLongitude + theta / n
+        let lat = latitude * 180 / Double.pi
+        let lon = longitude * 180 / Double.pi
+        guard lat.isFinite, lon.isFinite, (-85...85).contains(lat), (-180...180).contains(lon) else { return nil }
+        return ETS2MapCoordinate(latitude: lat, longitude: lon)
     }
 }
 

@@ -29,6 +29,11 @@ struct TelemetrySnapshot: Codable, Equatable, Identifiable {
     let parkingBrake: Bool?
     let leftIndicator: Bool?
     let rightIndicator: Bool?
+    let hazardWarning: Bool?
+    let parkingLights: Bool?
+    let lowBeam: Bool?
+    let highBeam: Bool?
+    let wipers: Bool?
     let worldPosition: GameWorldPosition?
     let cargo: String?
     let sourceCity: String?
