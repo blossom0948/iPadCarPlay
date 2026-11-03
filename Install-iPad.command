@@ -23,7 +23,7 @@ if [ ! -d "$PROJECT" ]; then
 fi
 
 DEVICE_OUTPUT="$(xcrun devicectl list devices 2>/dev/null || true)"
-DEVICE_IDS=($(printf "%s\n" "$DEVICE_OUTPUT" | awk '/connected/ && /physical/ {print}' | grep -Eo '[0-9A-Fa-f-]{25,36}' || true))
+DEVICE_IDS=($(printf "%s\n" "$DEVICE_OUTPUT" | awk '(/connected/ || /available/) && /physical/ {print}' | grep -Eo '[0-9A-Fa-f-]{25,36}' || true))
 if [ "${#DEVICE_IDS[@]}" -eq 0 ]; then
     fail "연결된 iPad를 찾지 못했습니다. iPad 잠금을 풀고 USB로 Mac에 연결하거나 같은 Wi-Fi에 페어링한 뒤 다시 실행하세요."
 fi
